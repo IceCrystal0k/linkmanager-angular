@@ -1,0 +1,120 @@
+<div class="flex h-screen w-full bg-slate-50 overflow-hidden select-none">
+  <!-- PANE 1: Gmail-Style Sidebar Drawer -->
+   <aside
+    [style.width]="isSidebarExpanded() ? '256px' : '80px'"
+    class="h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0">
+
+    <!-- Sidebar Header / Brand -->
+    <div class="flex h-16 items-center px-4 border-b border-slate-100 justify-between">
+      @if (isSidebarExpanded()) {
+        <span class="text-lg font-bold text-slate-800 tracking-tight">Organizer</span>
+      }
+      <button mat-icon-button (click)="toggleSidebar()">
+        <mat-icon>menu</mat-icon>
+      </button>
+    </div>
+
+    <!-- Category Links Menu -->
+    <mat-nav-list class="p-2">
+      <a mat-list-item class="rounded-lg mb-1 bg-blue-50 text-blue-600">
+        <mat-icon matListItemIcon class="text-blue-600">link</mat-icon>
+        @if (isSidebarExpanded()) { <span class="font-medium">Personal Links</span> }
+      </a>
+      <!-- 👇 Call your custom child component here -->
+      <app-category-list
+        [isSidebarExpanded]="isSidebarExpanded()"
+        (categorySelected)="handleCategorySelection($event)">
+      </app-category-list>
+      <a mat-list-item class="rounded-lg mb-1 text-slate-600 opacity-60 cursor-not-allowed">
+        <mat-icon matListItemIcon>book</mat-icon>
+        @if (isSidebarExpanded()) { <span>Books & Summaries (Soon)</span> }
+      </a>
+      <!-- Inside your sidebar list or detail card actions -->
+    </mat-nav-list>
+  </aside>
+
+  <!-- MAIN CANVAS CONTROLLER -->
+  <main class="flex-1 flex h-full overflow-hidden min-w-0">
+
+    <!-- PANE 2: Master List (The Gmail "Inbox" View) -->
+    <div class="w-96 flex flex-col h-full bg-white border-r border-slate-200">
+      <!-- Search Top Bar Wrapper -->
+      <div class="h-16 border-b border-slate-100 flex items-center px-4 bg-slate-50/50">
+        <div class="relative w-full">
+          <mat-icon class="absolute left-3 top-2.5 text-slate-400 scale-90">search</mat-icon>
+          <input
+            type="text"
+            placeholder="Search multiple fields..."
+            class="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400"
+          />
+        </div>
+      </div>
+
+      <!-- Scrollable Data Items Row -->
+      <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
+        @for (item of links(); track item.id) {
+          <div
+            (click)="selectLink(item)"
+            [class.bg-blue-50/60]="selectedLink()?.id === item.id"
+            class="p-4 hover:bg-slate-50 cursor-pointer transition-colors relative group">
+            <div class="flex justify-between items-start mb-1">
+              <h3 class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{{ item.name }}</h3>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{ item.category.name }}</span>
+            </div>
+            <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
+          </div>
+        }
+      </div>
+    </div>
+
+    <!-- PANE 3: Dynamic Detail Panel View -->
+    <div class="flex-1 flex flex-col h-full bg-slate-50 min-w-0">
+      @if (selectedLink()) {
+        <!-- Detail Header -->
+        <div class="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between">
+          <h2 class="text-lg font-bold text-slate-800">{{ selectedLink().name }}</h2>
+          <span class="text-xs text-slate-400">ID: #00{{ selectedLink().id }}</span>
+        </div>
+
+        <!-- Detail Content Sheet -->
+        <div class="p-6 max-w-2xl flex flex-col gap-6">
+          <div class="bg-white p-6 rounded-xl border border-slate-200/60 shadow-sm flex flex-col gap-4">
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Target Web URL</label>
+              <a [href]="selectedLink().url" target="_blank" class="text-blue-600 font-medium hover:underline text-sm break-all flex items-center gap-1">
+                {{ selectedLink().url }}
+                <mat-icon class="scale-70 inline-block">open_in_new</mat-icon>
+              </a>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Description Note</label>
+              <p class="text-slate-600 text-sm leading-relaxed">{{ selectedLink().desc }}</p>
+            </div>
+
+            <div class="pt-4 border-t border-slate-100 flex gap-3">
+              <button mat-flat-button color="primary" class="rounded-lg">
+                <mat-icon class="scale-90">edit</mat-icon> Edit Entry
+              </button>
+              <button mat-stroked-button class="rounded-lg !text-rose-600 !border-rose-200 hover:!bg-rose-50">
+                <mat-icon class="scale-90">delete</mat-icon> Purge
+              </button>
+            </div>
+          </div>
+        </div>
+      } @else {
+        <!-- Empty Landing State Placeholder -->
+        <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+          <mat-icon class="scale-[2] mb-4 opacity-40 text-slate-500">wysiwyg</mat-icon>
+          <p class="text-sm font-medium">Select an item from the column to see details</p>
+        </div>
+      }
+      <div class="flex justify-end">
+        <button matButton="text" (click)="onSignOut()" class="rounded-lg justify-start mt-4 hover:!bg-slate-100 !text-slate-600">
+          <mat-icon class="ml-[1px] text-[24px] w-[24px] h-[24px] text-blue-60">logout</mat-icon> @if (isSidebarExpanded()) { <span>Sign Out</span> }
+        </button>
+      </div>
+    </div>
+
+  </main>
+</div>

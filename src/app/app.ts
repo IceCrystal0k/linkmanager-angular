@@ -1,12 +1,10 @@
-import { Component, signal } from '@angular/core';
+import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
 @Component({
-  imports: [RouterOutlet],
-  selector: 'app-root',
-  styleUrl: './app.scss',
-  templateUrl: './app.html',
+    selector: 'app-root',
+    standalone: true,
+    imports: [RouterOutlet], // Make sure RouterOutlet is imported here!
+    template: `<router-outlet></router-outlet>` // Inline template to render the active route component
 })
-export class App {
-  protected readonly title = signal('organizer');
-}
+export class App {}

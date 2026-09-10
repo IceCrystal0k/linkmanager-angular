@@ -1,0 +1,14 @@
+::ng-deep {
+  .mat-tree {
+    mat-tree-node {
+      padding-left: 110px;
+    }
+    .mat-mdc-icon-button .mat-mdc-button-persistent-ripple::before {
+      background-color:  red;
+    }
+
+    .mat-mdc-button-persistent-ripple {
+      display: none;
+    }
+  }
+}
