@@ -1,1 +1,8 @@
-<p>delete-category-content works!</p>
+<h2 mat-dialog-title>{{data.title}}</h2>
+<mat-dialog-content>
+  Would you like to delete the category {{ data.data.name }}?
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button matButton (click)="onCancel()">No</button>
+  <button matButton cdkFocusInitial (click)="onConfirm()">Ok</button>
+</mat-dialog-actions>

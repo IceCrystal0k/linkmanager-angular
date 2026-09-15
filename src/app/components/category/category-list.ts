@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
-import { DeleteCategoryContent } from './dialog-content/delete-category-content';
+import { DeleteCategoryDialog } from './dialog-content/delete-category-dialog';
 
 export interface CategoryNode {
     name: string;
@@ -134,11 +134,20 @@ export class CategoryList {
     deleteCategory(item: CategoryNode | null) {
         // Implement the logic to delete the category with the given nodeId
         console.log('Delete category with ID:', item?.id);
-        this.dialogService.open(
-          DeleteCategoryContent,
+        const dialogRef = this.dialogService.open(
+          DeleteCategoryDialog,
           item,
           'Delete category'
         );
+
+        dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
+            if (confirmed) {
+                console.log('Delete confirmed for category:', item?.id);
+                return;
+            }
+
+            console.log('Delete cancelled for category:', item?.id);
+        });
     }
 
     addSubfolder(item: CategoryNode | null) {
