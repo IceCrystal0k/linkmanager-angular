@@ -1,7 +1,11 @@
-import { Component, signal, input, output } from '@angular/core';
+import { Component, signal, input, output, inject } from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { MatMenuModule } from '@angular/material/menu';
+import { CategoryMenu } from './category-menu';
+import { UiDialogService } from '../../services/ui-dialog';
+import { DeleteCategoryContent } from './dialog-content/delete-category-content';
 
 export interface CategoryNode {
     name: string;
@@ -12,16 +16,20 @@ export interface CategoryNode {
 @Component({
     selector: 'app-category-list',
     standalone: true,
-    imports: [MatTreeModule, MatButtonModule, MatIconModule],
+    imports: [MatTreeModule, MatButtonModule, MatIconModule, MatMenuModule, CategoryMenu],
     templateUrl: './category-list.html',
     styleUrl: './category-list.scss'
 })
 export class CategoryList {
+  private dialogService = inject(UiDialogService); // Inject the service
+
     // Receive the sidebar expansion status from the parent dashboard
     isSidebarExpanded = input<boolean>(true);
 
     // Emit the selected node up to the dashboard component
     categorySelected = output<CategoryNode>();
+
+    selectedItem = signal<CategoryNode | null>(null);
 
     // Tree category structure
     categoryListData = signal<CategoryNode[]>([
@@ -94,12 +102,52 @@ export class CategoryList {
     childrenAccessor = (node: CategoryNode) => node.children ?? [];
     hasChild = (_: number, node: CategoryNode) => !!node.children && node.children.length > 0;
 
+    hideCategoryActions() {
+        // Remove 'active-menu' class from all buttons when the menu is closed
+        document.querySelectorAll('app-category-list .active-menu').forEach((el) => el.classList.remove('active-menu'));
+    }
+
+    showCategoryActions(node: CategoryNode, event: MouseEvent) {
+        // Implement the logic to show category actions (e.g., edit, delete)
+        this.selectedItem.set(node);
+        console.log(event.currentTarget);
+        this.hideCategoryActions();
+        const target = event.currentTarget as HTMLElement;
+        target.classList.add('active-menu'); // Add 'active' class to the clicked button
+        console.log('Show actions for category:', node);
+    }
+
+    onCategoryMenuClosed() {
+      console.log('Menu closed from the category list component');
+      this.hideCategoryActions();
+    }
+
+    closeCategoryActions() {
+        console.log('Menu closed from the category list component 2');
+    }
+
+    editCategory(item: CategoryNode | null) {
+        // Implement the logic to edit the category with the given nodeId
+        console.log('Edit category with ID:', item?.id);
+    }
+
+    deleteCategory(item: CategoryNode | null) {
+        // Implement the logic to delete the category with the given nodeId
+        console.log('Delete category with ID:', item?.id);
+        this.dialogService.open(
+          DeleteCategoryContent,
+          item,
+          'Delete category'
+        );
+    }
+
+    addSubfolder(item: CategoryNode | null) {
+        // Implement the logic to add a subfolder to the category with the given nodeId
+        console.log('Add subfolder to category with ID:', item?.id);
+    }
+
     onCategorySelect(node: CategoryNode, tree: MatTree<CategoryNode>, event: MouseEvent) {
-        if ((event.target as any)?.nodeName === 'MAT-ICON') {
-            event.stopPropagation();
-            tree && tree.toggle(node);
-            return;
-        }
         this.categorySelected.emit(node); // Notify parent component
+        event.stopPropagation();
     }
 }

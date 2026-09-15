@@ -1,14 +1,34 @@
 ::ng-deep {
-  .mat-tree {
-    mat-tree-node {
-      padding-left: 110px;
-    }
-    .mat-mdc-icon-button .mat-mdc-button-persistent-ripple::before {
-      background-color:  red;
-    }
+    .mat-tree {
+        mat-tree-node {
+            padding-left: 110px;
+            button.hover-show {
+                visibility: hidden;
+                pointer-events: none;
+                transition: opacity 150ms ease;
+            }
+            &:hover {
+                button.hover-show {
+                    opacity: 1;
+                    visibility: visible;
+                    pointer-events: auto;
+                }
+            }
+            button.hover-show.active-menu {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+        }
+        .mat-mdc-icon-button {
+            padding: 8px 0;
+        }
+        .mat-mdc-icon-button .mat-mdc-button-persistent-ripple::before {
+            background-color: red;
+        }
 
-    .mat-mdc-button-persistent-ripple {
-      display: none;
+        .mat-mdc-button-persistent-ripple {
+            display: none;
+        }
     }
-  }
 }

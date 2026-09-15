@@ -1,0 +1,16 @@
+<mat-menu #menu="matMenu" (closed)="onMenuClosed()">
+  <ng-template matMenuContent>
+    <button mat-menu-item (click)="editItem(selectedItem)">
+      <mat-icon>edit</mat-icon>
+      <span>Edit</span>
+    </button>
+    <button mat-menu-item (click)="deleteItem(selectedItem)">
+      <mat-icon>delete_outlined</mat-icon>
+      <span>Delete</span>
+    </button>
+    <button mat-menu-item (click)="addSubfolder(selectedItem)">
+      <mat-icon>add_circle_outline</mat-icon>
+      <span>Add subfolder</span>
+    </button>
+  </ng-template>
+</mat-menu>

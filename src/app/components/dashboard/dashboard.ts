@@ -36,6 +36,11 @@ export class Dashboard implements OnInit {
     }
 
     loadInitialData() {
+        if (typeof window === 'undefined') {
+            console.warn('Window object is not available. Skipping localStorage access.');
+            return;
+        }
+        console.log('Token at startup:', localStorage.getItem('auth_token'));
         this.linkService.fetchLinks().subscribe({
             next: (data) => console.log('Links synced successfully from backend!'),
             error: (err) => console.error('Failed to resolve links payload', err)
