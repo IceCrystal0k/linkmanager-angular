@@ -5,7 +5,7 @@ import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
 import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
-import { DeleteCategoryDialog } from './dialog-content/delete-category-dialog';
+import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 
 export interface CategoryNode {
     name: string;
@@ -110,7 +110,6 @@ export class CategoryList {
     showCategoryActions(node: CategoryNode, event: MouseEvent) {
         // Implement the logic to show category actions (e.g., edit, delete)
         this.selectedItem.set(node);
-        console.log(event.currentTarget);
         this.hideCategoryActions();
         const target = event.currentTarget as HTMLElement;
         target.classList.add('active-menu'); // Add 'active' class to the clicked button
@@ -134,10 +133,13 @@ export class CategoryList {
     deleteCategory(item: CategoryNode | null) {
         // Implement the logic to delete the category with the given nodeId
         console.log('Delete category with ID:', item?.id);
+        const dialogData = {
+          title: 'Confirm Deletion',
+                    content: `Are you sure you want to delete the category **${item?.name ?? ''}**? All the subcategories and links under this category will also be deleted.`,
+        }
         const dialogRef = this.dialogService.open(
-          DeleteCategoryDialog,
-          item,
-          'Delete category'
+          ConfirmDialog,
+          dialogData
         );
 
         dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {

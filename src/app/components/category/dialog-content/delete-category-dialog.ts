@@ -19,9 +19,9 @@ export interface DialogData {
 
 @Component({
     imports: [MatButtonModule, MatDialogActions, MatDialogTitle, MatDialogContent],
-    selector: 'app-delete-category-content',
-    styleUrl: './delete-category-content.scss',
-    templateUrl: './delete-category-content.html'
+    selector: 'app-delete-category-dialog',
+    styleUrl: './delete-category-dialog.scss',
+    templateUrl: './delete-category-dialog.html'
 })
 export class DeleteCategoryDialog {
   readonly dialogRef = inject(MatDialogRef<DeleteCategoryDialog>);

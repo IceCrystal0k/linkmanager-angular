@@ -1,16 +1,16 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { DeleteCategoryContent } from './delete-category-content';
+import { DeleteCategoryDialog } from './delete-category-dialog';
 
-describe('DeleteCategoryContent', () => {
-    let component: DeleteCategoryContent;
-    let fixture: ComponentFixture<DeleteCategoryContent>;
+describe('DeleteCategoryDialog', () => {
+    let component: DeleteCategoryDialog;
+    let fixture: ComponentFixture<DeleteCategoryDialog>;
 
     beforeEach(async () => {
         await TestBed.configureTestingModule({
-            imports: [DeleteCategoryContent]
+            imports: [DeleteCategoryDialog]
         }).compileComponents();
 
-        fixture = TestBed.createComponent(DeleteCategoryContent);
+        fixture = TestBed.createComponent(DeleteCategoryDialog);
         component = fixture.componentInstance;
         await fixture.whenStable();
     });

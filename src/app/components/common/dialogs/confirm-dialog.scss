@@ -1,0 +1,6 @@
+.confirm-dialog-button:focus {
+	::ng-deep .mat-mdc-button-persistent-ripple::before {
+		background-color: currentColor;
+		opacity: 0.12;
+	}
+}
