@@ -1,0 +1,8 @@
+<h2 mat-dialog-title>{{data.title}}</h2>
+<mat-dialog-content>
+  <ng-container #content />
+</mat-dialog-content>
+<mat-dialog-actions>
+  <button matButton class="edit-dialog-button !text-gray-700 hover:!text-gray-900" (click)="onCancel()">{{data.cancelButtonText}}</button>
+  <button matButton cdkFocusInitial class="edit-dialog-button" (click)="onSave()">{{data.saveButtonText}}</button>
+</mat-dialog-actions>

@@ -1,0 +1,16 @@
+:host {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+mat-dialog-content {
+    flex: 1;
+}
+
+.edit-dialog-button:focus {
+    ::ng-deep .mat-mdc-button-persistent-ripple::before {
+        background-color: currentColor;
+        opacity: 0.12;
+    }
+}

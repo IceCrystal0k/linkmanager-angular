@@ -128,6 +128,26 @@ export class CategoryList {
     editCategory(item: CategoryNode | null) {
         // Implement the logic to edit the category with the given nodeId
         console.log('Edit category with ID:', item?.id);
+        const dialogData = {
+          title: 'Edit Category',
+                    content: `Are you sure you want to edit the category **${item?.name ?? ''}**?`,
+        }
+        const dialogRef = this.dialogService.openEdit(
+          ConfirmDialog,
+          dialogData,
+          {
+            width: '400px',
+          }
+        );
+
+        dialogRef.afterClosed().subscribe((result: any | undefined) => {
+            if (result !== false) {
+                console.log('Save confirmed for category:', item?.id, 'Result:', result);
+                return;
+            }
+
+            console.log('Save cancelled for category:', item?.id);
+        });
     }
 
     deleteCategory(item: CategoryNode | null) {
@@ -139,7 +159,10 @@ export class CategoryList {
         }
         const dialogRef = this.dialogService.open(
           ConfirmDialog,
-          dialogData
+          dialogData,
+          {
+            width: '400px',
+          }
         );
 
         dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
