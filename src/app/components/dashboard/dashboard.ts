@@ -9,6 +9,8 @@ import { AuthService } from '../../services/auth';
 import { CategoryList } from '../category/category-list';
 
 import { LinkService, LinkItem } from '../../services/link'; // Import service & interface
+import { CategoryService } from '../../services/category';
+import { ModuleService } from '../../services/module';
 
 @Component({
     imports: [MatSidenavModule, MatListModule, MatButtonModule, MatIconModule, CategoryList],
@@ -22,7 +24,12 @@ export class Dashboard implements OnInit {
     private authService = inject(AuthService); // Inject the service
     // Inject your isolated domain service
     private linkService = inject(LinkService);
+    private categoryService = inject(CategoryService);
+    private moduleService = inject(ModuleService);
     private selectedCategory: any = null;
+
+    icon1 = signal('link');
+    icon2 = signal('folder')
 
     isSidebarExpanded = signal(true);
     // Track the currently selected item details
@@ -30,6 +37,8 @@ export class Dashboard implements OnInit {
 
     // Link our local template variable directly to the read-only Service Signal!
     links = this.linkService.links;
+    categories = this.categoryService.categories;
+    modules = this.moduleService.modules;
 
     ngOnInit() {
         this.loadInitialData();
@@ -45,10 +54,18 @@ export class Dashboard implements OnInit {
             next: (data) => console.log('Links synced successfully from backend!'),
             error: (err) => console.error('Failed to resolve links payload', err)
         });
+
+        this.categoryService.fetchCategoriesStatic();
+        this.moduleService.fetchModulesStatic();
+    }
+
+    categoriesForModule(moduleId: string) {
+        return this.categories().filter((category) => category.module_id === moduleId);
     }
 
     toggleSidebar() {
         this.isSidebarExpanded.update((val) => !val);
+        this.icon1.update((val) => val === 'link' ? 'menu' : 'link');
     }
 
     selectLink(link: any) {

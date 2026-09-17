@@ -16,19 +16,17 @@
 
     <!-- Category Links Menu -->
     <mat-nav-list class="p-2">
-      <a mat-list-item class="rounded-lg mb-1 bg-blue-50 text-blue-600">
-        <mat-icon matListItemIcon class="text-blue-600">link</mat-icon>
-        @if (isSidebarExpanded()) { <span class="font-medium">Personal Links</span> }
-      </a>
-      <!-- 👇 Call your custom child component here -->
-      <app-category-list
-        [isSidebarExpanded]="isSidebarExpanded()"
-        (categorySelected)="handleCategorySelection($event)">
-      </app-category-list>
-      <a mat-list-item class="rounded-lg mb-1 text-slate-600 opacity-60 cursor-not-allowed">
-        <mat-icon matListItemIcon>book</mat-icon>
-        @if (isSidebarExpanded()) { <span>Books & Summaries (Soon)</span> }
-      </a>
+      @for (module of modules(); track module.id) {
+        <a mat-list-item class="rounded-lg mb-1 bg-blue-50 text-blue-600">
+          <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
+          @if (isSidebarExpanded()) { <span class="font-medium">{{ module.name }}</span> }
+        </a>
+        <app-category-list
+          [isSidebarExpanded]="isSidebarExpanded()"
+          (categorySelected)="handleCategorySelection($event)"
+          [categoryListData]="categoriesForModule(module.id)">
+        </app-category-list>
+      }
       <!-- Inside your sidebar list or detail card actions -->
     </mat-nav-list>
   </aside>

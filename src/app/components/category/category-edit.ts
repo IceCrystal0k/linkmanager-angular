@@ -1,9 +1,18 @@
-import { Component, inject, signal, input } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { CategoryService, CategoryModel } from '../../services/category';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { CategoryService } from '../../services/category';
+
+interface CategoryOption {
+    name: string;
+    id: string;
+    parent_id?: string | null;
+    children?: CategoryOption[];
+}
 
 @Component({
-    imports: [ReactiveFormsModule],
+    imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule],
     selector: 'app-category-edit',
     styleUrl: './category-edit.scss',
     templateUrl: './category-edit.html'
@@ -11,7 +20,14 @@ import { CategoryService, CategoryModel } from '../../services/category';
 export class CategoryEdit {
     private fb = inject(FormBuilder);
     private categoryService = inject(CategoryService); // Inject the service
-    readonly data = input<any>(null); // Receive the data from the parent component
+    categories = this.categoryService.categories;
+
+    private flattenCategories(categories: CategoryOption[], indentation = ''): CategoryOption[] {
+        return categories.flatMap((category) => [
+            { ...category, name: `${indentation}${category.name}` },
+            ...(category.children ? this.flattenCategories(category.children, `${indentation}   `) : [])
+        ]);
+    }
 
     // Manage UI error messages with a simple signal
     errorMessage = signal<string | null>(null);
@@ -28,24 +44,27 @@ export class CategoryEdit {
 
     readonly form = this.categoryForm;
 
-
+    getCategoryListFlat(excludeId: string | number | null = null): CategoryOption[] {
+        return this.flattenCategories(this.categories().filter((category) => category.id !== excludeId));
+    }
 
     save() {
         if (this.categoryForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
-            this.categoryService.createCategory(this.categoryForm.value).subscribe({
-                next: (response) => {
-                    // Success callback
-                    console.log('Category created successful!', response);
-                    // close the dialog
-                    // this.dialog.close();
-                },
-                error: (err) => {
-                    // Error callback (handles 401, 500, network issues, etc.)
-                    console.error('Failed to create category', err);
-                    this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Invalid email or password.');
-                }
-            });
+            console.log('Form is valid. Ready to submit:', this.categoryForm.value);
+            // this.categoryService.createCategory(this.categoryForm.value).subscribe({
+            //     next: (response) => {
+            //         // Success callback
+            //         console.log('Category created successful!', response);
+            //         // close the dialog
+            //         // this.dialog.close();
+            //     },
+            //     error: (err) => {
+            //         // Error callback (handles 401, 500, network issues, etc.)
+            //         console.error('Failed to create category', err);
+            //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Invalid email or password.');
+            //     }
+            // });
         }
     }
 }

@@ -6,11 +6,15 @@ import { MatMenuModule } from '@angular/material/menu';
 import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
+import { CategoryEdit } from './category-edit';
+import { slugify } from '../../lib/string-util';
 
 export interface CategoryNode {
     name: string;
     id?: string;
     parent_id?: string | null;
+    slug?: string;
+    module_id?: string;
     children?: CategoryNode[];
 }
 
@@ -33,78 +37,7 @@ export class CategoryList {
     selectedItem = signal<CategoryNode | null>(null);
 
     // Tree category structure
-    categoryListData = signal<CategoryNode[]>([
-        {
-            name: 'Work',
-            id: 'work',
-            children: [
-                { name: 'Projects', id: 'work-projects' },
-                { name: 'Credentials', id: 'work-credentials' },
-                { name: 'Documentation', id: 'work-docs' }
-            ],
-            parent_id: null
-        },
-        {
-            name: 'Personal',
-            id: 'personal',
-            children: [
-                {
-                    name: 'Finance',
-                    id: 'pers-finance',
-                    children: [
-                        {
-                            name: 'Green',
-                            id: 'pers-finance-green',
-                            children: [
-                                { name: 'Broccoli', id: 'pers-finance-green-brocoli', parent_id: 'pers-finance-green' },
-                                { name: 'Brussels sprouts', id: 'pers-finance-green-bussels-sprouts', parent_id: 'pers-finance-green' }
-                            ]
-                        },
-                        {
-                            name: 'Orange',
-                            id: 'pers-finance-orange',
-                            children: [
-                                { name: 'Pumpkins', id: 'pers-finance-orange-pumpkin', parent_id: 'pers-finance-orange' },
-                                { name: 'Carrots', id: 'pers-finance-orange-carrots', parent_id: 'pers-finance-orange' }
-                            ]
-                        }
-                    ],
-                    parent_id: 'personal'
-                },
-                {
-                    name: 'Shopping',
-                    id: 'pers-shopping',
-                    children: [
-                        {
-                            name: 'Green',
-                            id: 'pers-shopping-green',
-                            children: [
-                                { name: 'Broccoli', id: 'shopping-green-brocoli', parent_id: 'pers-shopping-green' },
-                                { name: 'Brussels sprouts', id: 'shopping-green-bussels-sprouts', parent_id: 'pers-shopping-green' }
-                            ],
-                            parent_id: 'pers-shopping'
-                        },
-                        {
-                            name: 'Orange',
-                            id: 'pers-shopping-orange',
-                            children: [
-                                { name: 'Pumpkins', id: 'shopping-orange-pumpkin', parent_id: 'pers-shopping-orange' },
-                                { name: 'Carrots', id: 'shopping-orange-carrots', parent_id: 'pers-shopping-orange' }
-                            ],
-                            parent_id: 'pers-shopping'
-                        }
-                    ],
-                    parent_id: 'personal'
-                }
-            ],
-            parent_id: null
-        },
-        {
-            name: 'Entertainment',
-            id: 'entertainment',
-            parent_id: null
-        }
-    ]);
+    categoryListData = input<CategoryNode[]>([]);
 
     // Material Tree Accessors
     childrenAccessor = (node: CategoryNode) => node.children ?? [];
@@ -138,15 +71,16 @@ export class CategoryList {
         console.log('Edit category with ID:', item?.id);
         const dialogData = {
           title: 'Edit Category',
-          content: ConfirmDialog,
           componentInputs: {
             name: item?.name ?? '',
-            parent: item?.parent_id ?? ''
+            parent_id: item?.parent_id ?? '',
+            slug: item?.name ? slugify(item?.name || '') : '',
+            id: item?.id ?? 0
           },
           id: item?.id,
         }
         const dialogRef = this.dialogService.openEdit(
-          ConfirmDialog,
+          CategoryEdit,
           dialogData,
           {
             width: '400px',

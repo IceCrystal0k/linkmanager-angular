@@ -50,17 +50,23 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     ngAfterViewInit(): void {
         this.contentComponent = this.content.createComponent(this.data.component);
 
-        for (const [inputName, inputValue] of Object.entries(this.data.componentInputs ?? {})) {
-            this.contentComponent.setInput(inputName, inputValue);
-        }
-
         const editContent = this.contentComponent.instance as EditDialogContent;
         if (editContent.form) {
+            const form = editContent.form as AbstractControl & {
+                patchValue(value: Record<string, unknown>): void;
+            };
+            form.patchValue(this.data.componentInputs ?? {});
             this.isFormValid = editContent.form.valid;
             this.formStatusSubscription = editContent.form.statusChanges.subscribe(() => {
                 this.isFormValid = editContent.form?.valid ?? true;
             });
+        } else {
+            for (const [inputName, inputValue] of Object.entries(this.data.componentInputs ?? {})) {
+                this.contentComponent.setInput(inputName, inputValue);
+            }
         }
+
+        this.contentComponent.changeDetectorRef.detectChanges();
     }
 
     ngOnDestroy(): void {

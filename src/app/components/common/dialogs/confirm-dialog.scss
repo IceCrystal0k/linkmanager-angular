@@ -1,6 +1,8 @@
-.confirm-dialog-button:focus {
-	::ng-deep .mat-mdc-button-persistent-ripple::before {
-		background-color: currentColor;
-		opacity: 0.12;
+:host ::ng-deep {
+	.confirm-dialog-button:focus {
+		.mat-mdc-button-persistent-ripple::before {
+			background-color: currentColor;
+			opacity: 0.12;
+		}
 	}
 }
