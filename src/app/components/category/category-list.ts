@@ -10,6 +10,7 @@ import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 export interface CategoryNode {
     name: string;
     id?: string;
+    parent_id?: string | null;
     children?: CategoryNode[];
 }
 
@@ -40,7 +41,8 @@ export class CategoryList {
                 { name: 'Projects', id: 'work-projects' },
                 { name: 'Credentials', id: 'work-credentials' },
                 { name: 'Documentation', id: 'work-docs' }
-            ]
+            ],
+            parent_id: null
         },
         {
             name: 'Personal',
@@ -54,19 +56,20 @@ export class CategoryList {
                             name: 'Green',
                             id: 'pers-finance-green',
                             children: [
-                                { name: 'Broccoli', id: 'pers-finance-green-brocoli' },
-                                { name: 'Brussels sprouts', id: 'pers-finance-green-bussels-sprouts' }
+                                { name: 'Broccoli', id: 'pers-finance-green-brocoli', parent_id: 'pers-finance-green' },
+                                { name: 'Brussels sprouts', id: 'pers-finance-green-bussels-sprouts', parent_id: 'pers-finance-green' }
                             ]
                         },
                         {
                             name: 'Orange',
                             id: 'pers-finance-orange',
                             children: [
-                                { name: 'Pumpkins', id: 'pers-finance-orange-pumpkin' },
-                                { name: 'Carrots', id: 'pers-finance-orange-carrots' }
+                                { name: 'Pumpkins', id: 'pers-finance-orange-pumpkin', parent_id: 'pers-finance-orange' },
+                                { name: 'Carrots', id: 'pers-finance-orange-carrots', parent_id: 'pers-finance-orange' }
                             ]
                         }
-                    ]
+                    ],
+                    parent_id: 'personal'
                 },
                 {
                     name: 'Shopping',
@@ -76,25 +79,30 @@ export class CategoryList {
                             name: 'Green',
                             id: 'pers-shopping-green',
                             children: [
-                                { name: 'Broccoli', id: 'shopping-green-brocoli' },
-                                { name: 'Brussels sprouts', id: 'shopping-green-bussels-sprouts' }
-                            ]
+                                { name: 'Broccoli', id: 'shopping-green-brocoli', parent_id: 'pers-shopping-green' },
+                                { name: 'Brussels sprouts', id: 'shopping-green-bussels-sprouts', parent_id: 'pers-shopping-green' }
+                            ],
+                            parent_id: 'pers-shopping'
                         },
                         {
                             name: 'Orange',
                             id: 'pers-shopping-orange',
                             children: [
-                                { name: 'Pumpkins', id: 'shopping-orange-pumpkin' },
-                                { name: 'Carrots', id: 'shopping-orange-carrots' }
-                            ]
+                                { name: 'Pumpkins', id: 'shopping-orange-pumpkin', parent_id: 'pers-shopping-orange' },
+                                { name: 'Carrots', id: 'shopping-orange-carrots', parent_id: 'pers-shopping-orange' }
+                            ],
+                            parent_id: 'pers-shopping'
                         }
-                    ]
+                    ],
+                    parent_id: 'personal'
                 }
-            ]
+            ],
+            parent_id: null
         },
         {
             name: 'Entertainment',
-            id: 'entertainment'
+            id: 'entertainment',
+            parent_id: null
         }
     ]);
 
@@ -130,7 +138,12 @@ export class CategoryList {
         console.log('Edit category with ID:', item?.id);
         const dialogData = {
           title: 'Edit Category',
-                    content: `Are you sure you want to edit the category **${item?.name ?? ''}**?`,
+          content: ConfirmDialog,
+          componentInputs: {
+            name: item?.name ?? '',
+            parent: item?.parent_id ?? ''
+          },
+          id: item?.id,
         }
         const dialogRef = this.dialogService.openEdit(
           ConfirmDialog,

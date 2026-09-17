@@ -1,15 +1,15 @@
 <!-- Login Reactive Form Canvas -->
-<form [formGroup]="categoryForm" (ngSubmit)="onSubmit()" class="space-y-5">
+<form [formGroup]="categoryForm" (ngSubmit)="save()" class="space-y-5">
     <div>
     <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Email Address</label>
     <input
-        type="email"
-        formControlName="email"
-        placeholder="name@company.com"
+        type="text"
+        formControlName="name"
+        placeholder="category name"
         class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 text-sm text-slate-700 transition-all"
     />
-    @if (categoryForm.get('email')?.touched && categoryForm.get('email')?.invalid) {
-        <p class="text-xs text-rose-500 font-medium mt-1">Please enter a valid email address.</p>
+    @if (categoryForm.get('name')?.touched && categoryForm.get('name')?.invalid) {
+        <p class="text-xs text-rose-500 font-medium mt-1">Please enter a valid category name.</p>
     }
     </div>
 

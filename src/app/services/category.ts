@@ -4,10 +4,11 @@ import { Observable, tap } from 'rxjs';
 import ServiceConfig from '../services/service.config';
 
 // Define a strict TypeScript interface for your Category data structure
-export interface CategoryItem {
+export interface CategoryModel {
     id: number;
     name: string;
     slug: string;
+    parent_id: string | null;
     order_index: string;
     description: string;
 }
@@ -20,19 +21,19 @@ export class CategoryService {
     private apiUrl = ServiceConfig.apiUrl;
 
     // The single source of truth for your categories state across the app
-    private categorySignal = signal<CategoryItem[]>([]);
+    private categorySignal = signal<CategoryModel[]>([]);
     readonly categories = this.categorySignal.asReadonly();
 
     // 1. GET: Fetch all categories from the API and update the signal
-    fetchCategories(): Observable<CategoryItem[]> {
-        return this.http.get<CategoryItem[]>(this.apiUrl).pipe(
+    fetchCategories(): Observable<CategoryModel[]> {
+        return this.http.get<CategoryModel[]>(this.apiUrl).pipe(
             tap((data) => this.categorySignal.set(data)) // Updates the global signal state smoothly
         );
     }
 
     // 2. POST: Create a new category
-    createCategory(newCategory: Partial<CategoryItem>): Observable<CategoryItem> {
-        return this.http.post<CategoryItem>(this.apiUrl, newCategory).pipe(
+    createCategory(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
+        return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
             tap((createdCategory) => {
                 // Optimistically add the new item to our local signal array instantly
                 this.categorySignal.update((currentCategories) => [...currentCategories, createdCategory]);
@@ -41,8 +42,8 @@ export class CategoryService {
     }
 
     // 3. PUT: Update an existing category
-    updateCategory(id: number, updatedData: Partial<CategoryItem>): Observable<CategoryItem> {
-        return this.http.put<CategoryItem>(`${this.apiUrl}/${id}`, updatedData).pipe(
+    updateCategory(id: number, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
+        return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
             tap((savedCategory) => {
                 // Map over the signal array and replace the old item with the updated one
                 this.categorySignal.update((currentCategories) =>

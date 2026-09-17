@@ -1,8 +1,11 @@
-import { AfterViewInit, Component, ComponentRef, Type, ViewChild, ViewContainerRef, inject } from '@angular/core';
+import { AfterViewInit, Component, ComponentRef, OnDestroy, Type, ViewChild, ViewContainerRef, inject } from '@angular/core';
+import { AbstractControl } from '@angular/forms';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogTitle, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
+import { Subscription } from 'rxjs';
 
 export interface EditDialogContent<T = unknown> {
+    form?: AbstractControl;
     save?(): T | undefined;
 }
 
@@ -25,7 +28,7 @@ interface DialogConfig {
     styleUrl: './edit-dialog.scss',
     templateUrl: './edit-dialog.html'
 })
-export class EditDialog implements AfterViewInit {
+export class EditDialog implements AfterViewInit, OnDestroy {
     private readonly dialogRef = inject(MatDialogRef<EditDialog>);
     private readonly dialogData = inject<DialogConfig>(MAT_DIALOG_DATA).data;
 
@@ -33,6 +36,9 @@ export class EditDialog implements AfterViewInit {
     private readonly content!: ViewContainerRef;
 
     private contentComponent?: ComponentRef<unknown>;
+    private formStatusSubscription?: Subscription;
+
+    isFormValid = true;
 
     readonly data = {
         title: 'Edit',
@@ -47,6 +53,18 @@ export class EditDialog implements AfterViewInit {
         for (const [inputName, inputValue] of Object.entries(this.data.componentInputs ?? {})) {
             this.contentComponent.setInput(inputName, inputValue);
         }
+
+        const editContent = this.contentComponent.instance as EditDialogContent;
+        if (editContent.form) {
+            this.isFormValid = editContent.form.valid;
+            this.formStatusSubscription = editContent.form.statusChanges.subscribe(() => {
+                this.isFormValid = editContent.form?.valid ?? true;
+            });
+        }
+    }
+
+    ngOnDestroy(): void {
+        this.formStatusSubscription?.unsubscribe();
     }
 
     onSave(): void {
