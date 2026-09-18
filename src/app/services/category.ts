@@ -12,6 +12,7 @@ export interface CategoryModel {
     parent_id: string | null;
     order_index: number;
     description: string;
+    children?: CategoryModel[];
 }
 
 @Injectable({
@@ -31,27 +32,30 @@ export class CategoryService {
                 name: 'Work',
                 module_id: 'links',
                 id: 'work',
+                parent_id: null,
                 children: [
-                    { name: 'Projects', id: 'work-projects', module_id: 'links' },
-                    { name: 'Credentials', id: 'work-credentials', module_id: 'links' },
-                    { name: 'Documentation', id: 'work-docs', module_id: 'links' }
-                ],
-                parent_id: null
+                    { name: 'Projects', id: 'work-projects', module_id: 'links', parent_id: 'work' },
+                    { name: 'Credentials', id: 'work-credentials', module_id: 'links', parent_id: 'work' },
+                    { name: 'Documentation', id: 'work-docs', module_id: 'links', parent_id: 'work' }
+                ]
             },
             {
                 name: 'Personal',
                 id: 'personal',
                 module_id: 'links',
+                parent_id: null,
                 children: [
                     {
                         name: 'Finance',
                         id: 'pers-finance',
                         module_id: 'links',
+                        parent_id: 'personal',
                         children: [
                             {
                                 name: 'Green',
                                 id: 'pers-finance-green',
                                 module_id: 'links',
+                                parent_id: 'pers-finance',
                                 children: [
                                     {
                                         name: 'Broccoli',
@@ -71,6 +75,7 @@ export class CategoryService {
                                 name: 'Orange',
                                 id: 'pers-finance-orange',
                                 module_id: 'links',
+                                parent_id: 'pers-finance',
                                 children: [
                                     {
                                         name: 'Pumpkins',
@@ -87,17 +92,18 @@ export class CategoryService {
                                 ]
                             }
                         ],
-                        parent_id: 'personal'
                     },
                     {
                         name: 'Shopping',
                         id: 'pers-shopping',
                         module_id: 'links',
+                        parent_id: 'personal',
                         children: [
                             {
                                 name: 'Green',
                                 id: 'pers-shopping-green',
                                 module_id: 'links',
+                                parent_id: 'pers-shopping',
                                 children: [
                                     {
                                         name: 'Broccoli',
@@ -111,13 +117,13 @@ export class CategoryService {
                                         module_id: 'links',
                                         parent_id: 'pers-shopping-green'
                                     }
-                                ],
-                                parent_id: 'pers-shopping'
+                                ]
                             },
                             {
                                 name: 'Orange',
                                 id: 'pers-shopping-orange',
                                 module_id: 'links',
+                                parent_id: 'pers-shopping',
                                 children: [
                                     {
                                         name: 'Pumpkins',
@@ -131,14 +137,11 @@ export class CategoryService {
                                         module_id: 'links',
                                         parent_id: 'pers-shopping-orange'
                                     }
-                                ],
-                                parent_id: 'pers-shopping'
+                                ]
                             }
                         ],
-                        parent_id: 'personal'
                     }
-                ],
-                parent_id: null
+                ]
             },
             {
                 name: 'Entertainment',
@@ -181,11 +184,23 @@ export class CategoryService {
 
     // 4. DELETE: Erase a category
     deleteCategory(id: string): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-            tap(() => {
-                // Remove the item from our local signal array
-                this.categorySignal.update((currentCategories) => currentCategories.filter((category) => category.id !== id));
-            })
-        );
+        this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
+        // return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+        //     tap(() => {
+        //         this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
+        //     })
+        // );
+        return <any>null;
+    }
+
+    private removeCategory(categories: CategoryModel[], id: string): CategoryModel[] {
+        return categories
+            .filter((category) => category.id !== id)
+            .map((category) => ({
+                ...category,
+                children: category.children
+                    ? this.removeCategory(category.children, id)
+                    : category.children
+            }));
     }
 }
