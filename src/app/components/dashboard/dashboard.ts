@@ -55,7 +55,7 @@ export class Dashboard implements OnInit {
             error: (err) => console.error('Failed to resolve links payload', err)
         });
 
-        this.categoryService.fetchCategoriesStatic();
+        this.categoryService.fetchItemsStatic();
         this.moduleService.fetchModulesStatic();
     }
 

@@ -26,7 +26,7 @@ export class CategoryService {
     private categorySignal = signal<CategoryModel[]>([]);
     readonly categories = this.categorySignal.asReadonly();
 
-    fetchCategoriesStatic() {
+    fetchItemsStatic() {
         const categories = <CategoryModel[]>[
             {
                 name: 'Work',
@@ -154,24 +154,26 @@ export class CategoryService {
     }
 
     // 1. GET: Fetch all categories from the API and update the signal
-    fetchCategories(): Observable<CategoryModel[]> {
+    fetchItems(): Observable<CategoryModel[]> {
         return this.http.get<CategoryModel[]>(this.apiUrl).pipe(
             tap((data) => this.categorySignal.set(data)) // Updates the global signal state smoothly
         );
     }
 
     // 2. POST: Create a new category
-    createCategory(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
-        return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
-            tap((createdCategory) => {
-                // Optimistically add the new item to our local signal array instantly
-                this.categorySignal.update((currentCategories) => [...currentCategories, createdCategory]);
-            })
-        );
+    createItem(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
+      this.categorySignal.update((currentCategories) => [...currentCategories, newCategory as CategoryModel]);
+      return <any>null;
+      // return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
+        //     tap((createdCategory) => {
+        //         // Optimistically add the new item to our local signal array instantly
+        //         this.categorySignal.update((currentCategories) => [...currentCategories, createdCategory]);
+        //     })
+        // );
     }
 
     // 3. PUT: Update an existing category
-    updateCategory(id: string, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
+    updateItem(id: string, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
         return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
             tap((savedCategory) => {
                 // Map over the signal array and replace the old item with the updated one
@@ -183,8 +185,8 @@ export class CategoryService {
     }
 
     // 4. DELETE: Erase a category
-    deleteCategory(id: string): Observable<void> {
-        this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
+    deleteItem(id: string): Observable<void> {
+        this.categorySignal.update((currentCategories) => this.removeItem(currentCategories, id));
         // return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
         //     tap(() => {
         //         this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
@@ -193,14 +195,20 @@ export class CategoryService {
         return <any>null;
     }
 
-    private removeCategory(categories: CategoryModel[], id: string): CategoryModel[] {
-        return categories
-            .filter((category) => category.id !== id)
-            .map((category) => ({
-                ...category,
-                children: category.children
-                    ? this.removeCategory(category.children, id)
-                    : category.children
+    private removeItem(list: CategoryModel[], id: string): CategoryModel[] {
+        return list
+            .filter((item) => item.id !== id)
+            .map((item) => ({
+                ...item,
+                children: item.children
+                    ? this.removeItem(item.children, id)
+                    : item.children
             }));
     }
+
+    // private addItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
+    //     if (!newItem.parent_id) {
+    //         return [...list, newItem];
+    //     }
+    //   }
 }

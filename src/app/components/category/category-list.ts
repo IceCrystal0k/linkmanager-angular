@@ -27,7 +27,7 @@ export interface CategoryNode {
     styleUrl: './category-list.scss'
 })
 export class CategoryList {
-  private dialogService = inject(UiDialogService); // Inject the service
+    private dialogService = inject(UiDialogService); // Inject the service
     private categoryService = inject(CategoryService);
 
     @ViewChild('categoryTree') private categoryTree?: MatTree<CategoryNode>;
@@ -62,8 +62,8 @@ export class CategoryList {
     }
 
     onCategoryMenuClosed() {
-      console.log('Menu closed from the category list component');
-      this.hideCategoryActions();
+        console.log('Menu closed from the category list component');
+        this.hideCategoryActions();
     }
 
     closeCategoryActions() {
@@ -74,22 +74,18 @@ export class CategoryList {
         // Implement the logic to edit the category with the given nodeId
         console.log('Edit category with ID:', item?.id);
         const dialogData = {
-          title: 'Edit Category',
-          componentInputs: {
-            name: item?.name ?? '',
-            parent_id: item?.parent_id ?? '',
-            slug: item?.name ? slugify(item?.name || '') : '',
-            id: item?.id ?? 0
-          },
-          id: item?.id,
-        }
-        const dialogRef = this.dialogService.openEdit(
-          CategoryEdit,
-          dialogData,
-          {
-            width: '400px',
-          }
-        );
+            title: 'Edit Category',
+            componentInputs: {
+                name: item?.name ?? '',
+                parent_id: item?.parent_id ?? '',
+                slug: item?.name ? slugify(item?.name || '') : '',
+                id: item?.id ?? 0
+            },
+            id: item?.id
+        };
+        const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
+            width: '400px'
+        });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
             if (result !== false) {
@@ -105,28 +101,24 @@ export class CategoryList {
         // Implement the logic to delete the category with the given nodeId
         console.log('Delete category with ID:', item?.id);
         const dialogData = {
-          title: 'Confirm Deletion',
-                    content: `Are you sure you want to delete the category **${item?.name ?? ''}**? All the subcategories and links under this category will also be deleted.`,
-        }
-        const dialogRef = this.dialogService.open(
-          ConfirmDialog,
-          dialogData,
-          {
-            width: '400px',
-          }
-        );
+            title: 'Confirm Deletion',
+            content: `Are you sure you want to delete the category **${item?.name ?? ''}**? All the subcategories and links under this category will also be deleted.`
+        };
+        const dialogRef = this.dialogService.open(ConfirmDialog, dialogData, {
+            width: '400px'
+        });
 
         dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
-          if (confirmed && item?.id) {
-            const expandedNodeIds = this.getExpandedNodeIds(this.categoryListData());
-            this.categoryService.deleteCategory(item.id);
-            // .subscribe(() => {
-            //     console.log('Category deleted:', item?.id);
-            // });
+            if (confirmed && item?.id) {
+                const expandedNodeIds = this.getExpandedNodeIds(this.categoryListData());
+                this.categoryService.deleteItem(item.id);
+                // .subscribe(() => {
+                //     console.log('Category deleted:', item?.id);
+                // });
 
-            // The service replaces ancestor objects while removing the node.
-            // Restore expansion after the tree has rendered those new objects.
-            setTimeout(() => this.restoreExpandedNodes(expandedNodeIds));
+                // The service replaces ancestor objects while removing the node.
+                // Restore expansion after the tree has rendered those new objects.
+                setTimeout(() => this.restoreExpandedNodes(expandedNodeIds));
                 return;
             }
 
@@ -134,65 +126,61 @@ export class CategoryList {
         });
     }
 
-      private getExpandedNodeIds(nodes: CategoryNode[]): Set<string> {
+    private getExpandedNodeIds(nodes: CategoryNode[]): Set<string> {
         const expandedNodeIds = new Set<string>();
 
         const collectExpandedNodes = (currentNodes: CategoryNode[]) => {
-          for (const node of currentNodes) {
-            if (node.id && this.categoryTree?.isExpanded(node)) {
-              expandedNodeIds.add(node.id);
-            }
+            for (const node of currentNodes) {
+                if (node.id && this.categoryTree?.isExpanded(node)) {
+                    expandedNodeIds.add(node.id);
+                }
 
-            if (node.children) {
-              collectExpandedNodes(node.children);
+                if (node.children) {
+                    collectExpandedNodes(node.children);
+                }
             }
-          }
         };
 
         collectExpandedNodes(nodes);
         return expandedNodeIds;
-      }
+    }
 
-      private restoreExpandedNodes(expandedNodeIds: Set<string>) {
+    private restoreExpandedNodes(expandedNodeIds: Set<string>) {
         if (!this.categoryTree) {
-          return;
+            return;
         }
 
         const expandMatchingNodes = (nodes: CategoryNode[]) => {
-          for (const node of nodes) {
-            if (node.id && expandedNodeIds.has(node.id)) {
-              this.categoryTree?.expand(node);
-            }
+            for (const node of nodes) {
+                if (node.id && expandedNodeIds.has(node.id)) {
+                    this.categoryTree?.expand(node);
+                }
 
-            if (node.children) {
-              expandMatchingNodes(node.children);
+                if (node.children) {
+                    expandMatchingNodes(node.children);
+                }
             }
-          }
         };
 
         expandMatchingNodes(this.categoryListData());
-      }
+    }
 
     addSubfolder(item: CategoryNode | null) {
         // Implement the logic to add a subfolder to the category with the given nodeId
         console.log('Add subfolder to category with ID:', item?.id);
         const dialogData = {
-          title: 'Create category',
-          componentInputs: {
-            name: '',
-            parent_id: item?.id ?? '',
-            slug: '',
-            id: 0
-          },
-          id: null,
-        }
-        const dialogRef = this.dialogService.openEdit(
-          CategoryEdit,
-          dialogData,
-          {
-            width: '400px',
-          }
-        );
+            title: 'Create category',
+            componentInputs: {
+                name: '',
+                parent_id: item?.id ?? '',
+                slug: '',
+                id: 0
+            },
+            id: null
+        };
+        const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
+            width: '400px'
+        });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
             if (result !== false) {

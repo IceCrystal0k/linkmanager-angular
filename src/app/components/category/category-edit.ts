@@ -37,9 +37,9 @@ export class CategoryEdit {
         name: ['', [Validators.required, Validators.maxLength(255)]],
         parent_id: [''],
         slug: ['', [Validators.required, Validators.maxLength(255)]],
-        order_index: [''],
+        order_index: [0],
         description: ['', [Validators.maxLength(1000)]],
-        id: [0] // Default to 0 for new categories; will be ignored by the backend
+        id: [''] // Default to 0 for new categories; will be ignored by the backend
     });
 
     readonly form = this.categoryForm;
@@ -52,6 +52,7 @@ export class CategoryEdit {
         if (this.categoryForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
             console.log('Form is valid. Ready to submit:', this.categoryForm.value);
+            this.categoryService.createItem(this.categoryForm.value);
             // this.categoryService.createCategory(this.categoryForm.value).subscribe({
             //     next: (response) => {
             //         // Success callback
