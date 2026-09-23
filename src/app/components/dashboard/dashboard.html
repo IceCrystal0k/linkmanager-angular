@@ -17,15 +17,25 @@
     <!-- Category Links Menu -->
     <mat-nav-list class="p-2">
       @for (module of modules(); track module.id) {
-        <a mat-list-item class="rounded-lg mb-1 bg-blue-50 text-blue-600">
-          <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
-          @if (isSidebarExpanded()) { <span class="font-medium">{{ module.name }}</span> }
-        </a>
+        <div class="flex flex-col">
         <app-category-list
+          #categoryList
+          class="order-2"
+          [moduleId]="module.id"
           [isSidebarExpanded]="isSidebarExpanded()"
           (categorySelected)="handleCategorySelection($event)"
-          [categoryListData]="categoriesForModule(module.id)">
+          [categoryListData]="categoriesForModule().get(module.id) || []">
         </app-category-list>
+        <a mat-list-item class="order-1 rounded-lg mb-1 bg-blue-50 text-blue-600">
+          <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
+          @if (isSidebarExpanded()) { <span class="font-medium">{{ module.name }}</span>
+          <button matIconButton (click)="categoryList.addCategory(null)"
+            class="action-icons ml-auto hover-show" matTooltip="Add Category" [matTooltipPosition]="tooltipPosition">
+            <mat-icon class="text-slate-400">add_circle_outline</mat-icon>
+          </button>
+        }
+        </a>
+        </div>
       }
       <!-- Inside your sidebar list or detail card actions -->
     </mat-nav-list>

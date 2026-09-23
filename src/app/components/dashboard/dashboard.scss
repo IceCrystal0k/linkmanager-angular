@@ -1,3 +1,15 @@
-mat-nav-list {
-  overflow-y: auto;
+:host ::ng-deep {
+  .mat-mdc-nav-list {
+    overflow-y: auto;
+    .mdc-list-item--with-leading-icon.mdc-list-item {
+      padding-right: 0;
+    }
+    .mdc-list-item__content > span {
+      display: flex;
+      align-items: center;
+      .mat-icon-button {
+        margin-left: auto;
+      }
+    }
+  }
 }

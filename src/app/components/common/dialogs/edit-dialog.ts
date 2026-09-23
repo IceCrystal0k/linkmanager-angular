@@ -51,6 +51,10 @@ export class EditDialog implements AfterViewInit, OnDestroy {
         this.contentComponent = this.content.createComponent(this.data.component);
 
         const editContent = this.contentComponent.instance as EditDialogContent;
+        for (const [inputName, inputValue] of Object.entries(this.data.data ?? {})) {
+          this.contentComponent.setInput(inputName, inputValue);
+        }
+
         if (editContent.form) {
             const form = editContent.form as AbstractControl & {
                 patchValue(value: Record<string, unknown>): void;
@@ -60,10 +64,6 @@ export class EditDialog implements AfterViewInit, OnDestroy {
             this.formStatusSubscription = editContent.form.statusChanges.subscribe(() => {
                 this.isFormValid = editContent.form?.valid ?? true;
             });
-        } else {
-            for (const [inputName, inputValue] of Object.entries(this.data.componentInputs ?? {})) {
-                this.contentComponent.setInput(inputName, inputValue);
-            }
         }
 
         this.contentComponent.changeDetectorRef.detectChanges();
@@ -76,7 +76,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     onSave(): void {
         const editContent = this.contentComponent?.instance as EditDialogContent;
         const savedData = editContent?.save?.();
-        this.dialogRef.close(savedData ?? this.data.data ?? true);
+        this.dialogRef.close(savedData ?? true);
     }
 
     onCancel(): void {

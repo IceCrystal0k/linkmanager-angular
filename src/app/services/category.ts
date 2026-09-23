@@ -162,8 +162,13 @@ export class CategoryService {
 
     // 2. POST: Create a new category
     createItem(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
-      this.categorySignal.update((currentCategories) => [...currentCategories, newCategory as CategoryModel]);
-      return <any>null;
+            const category = newCategory as CategoryModel;
+            this.categorySignal.update((currentCategories) =>
+                    category.parent_id
+                            ? this.addListItem(currentCategories, category)
+                            : [...currentCategories, category]
+            );
+            return <any>null;
       // return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
         //     tap((createdCategory) => {
         //         // Optimistically add the new item to our local signal array instantly
@@ -174,41 +179,96 @@ export class CategoryService {
 
     // 3. PUT: Update an existing category
     updateItem(id: string, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
-        return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
-            tap((savedCategory) => {
-                // Map over the signal array and replace the old item with the updated one
-                this.categorySignal.update((currentCategories) =>
-                    currentCategories.map((category) => (category.id === id ? savedCategory : category))
-                );
-            })
-        );
+        this.categorySignal.update((currentCategories) => this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel));
+        return <any>null;
+        // return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
+        //     tap((savedCategory) => {
+        //         // Map over the signal array and replace the old item with the updated one
+        //         this.categorySignal.update((currentCategories) =>
+        //             currentCategories.map((category) => (category.id === id ? savedCategory : category))
+        //         );
+        //     })
+        // );
     }
 
     // 4. DELETE: Erase a category
     deleteItem(id: string): Observable<void> {
-        this.categorySignal.update((currentCategories) => this.removeItem(currentCategories, id));
+        this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
+        return <any>null;
         // return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
         //     tap(() => {
         //         this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
         //     })
         // );
-        return <any>null;
     }
 
-    private removeItem(list: CategoryModel[], id: string): CategoryModel[] {
+    private removeListItem(list: CategoryModel[], id: string): CategoryModel[] {
         return list
             .filter((item) => item.id !== id)
             .map((item) => ({
                 ...item,
                 children: item.children
-                    ? this.removeItem(item.children, id)
+                    ? this.removeListItem(item.children, id)
                     : item.children
             }));
     }
 
-    // private addItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
-    //     if (!newItem.parent_id) {
-    //         return [...list, newItem];
-    //     }
-    //   }
+    private addListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
+        return list.map((item) => {
+            if (item.id === newItem.parent_id) {
+                return {
+                    ...item,
+                    children: [...(item.children ?? []), newItem]
+                };
+            }
+
+            return item.children
+                ? { ...item, children: this.addListItem(item.children, newItem) }
+                : item;
+        });
+      }
+
+      private updateListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
+        const listItem = this.getCategoryById(list, newItem.id);
+        if (!listItem) {
+            console.warn(`Category with id ${newItem.id} not found for update.`);
+            return list;
+        }
+        // If the parent_id has changed, we need to remove it from the old parent and add it to the new parent
+        if (listItem.parent_id !== newItem.parent_id) {
+            // Remove from old parent
+            list = this.removeListItem(list, newItem.id);
+            // Add to new parent
+            if (newItem.parent_id) {
+                list = this.addListItem(list, newItem);
+            }
+            return list;
+        }
+
+        // If the parent_id hasn't changed, we can just update the item in place
+        return list.map((item) => {
+            if (item.id === newItem.id) {
+                return {...newItem };
+            }
+
+            return item.children
+                ? { ...item, children: this.updateListItem(item.children, newItem) }
+                : item;
+        });
+      }
+
+      private getCategoryById(list: CategoryModel[], id: string): CategoryModel | null {
+        for (const item of list) {
+            if (item.id === id) {
+                return item;
+            }
+            if (item.children) {
+                const found = this.getCategoryById(item.children, id);
+                if (found) {
+                    return found;
+                }
+            }
+        }
+        return null;
+      }
 }

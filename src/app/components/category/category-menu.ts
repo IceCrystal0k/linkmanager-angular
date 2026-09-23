@@ -17,7 +17,7 @@ export class CategoryMenu {
     menuClosed = output<boolean>();
     onEdit = output<CategoryNode | null>();
     onDelete = output<CategoryNode | null>();
-    onAddSubfolder = output<CategoryNode | null>();
+    onAddCategory = output<CategoryNode | null>();
 
     selectedItem = input<CategoryNode | null>(null);
     editItem(item: InputSignal<CategoryNode | null>) {
@@ -32,10 +32,10 @@ export class CategoryMenu {
         this.onDelete.emit(item());
     }
 
-    addSubfolder(item: InputSignal<CategoryNode | null>) {
-        // Implement the logic to add a subfolder to the category with the given nodeId
+    addCategory(item: InputSignal<CategoryNode | null>) {
+        // Implement the logic to add a subcategory to the category with the given nodeId
         console.log('Add subfolder to category with ID:', item()?.id);
-        this.onAddSubfolder.emit(item());
+        this.onAddCategory.emit(item());
     }
 
     onMenuClosed() {

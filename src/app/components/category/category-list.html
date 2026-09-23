@@ -1,7 +1,7 @@
 @if (isSidebarExpanded()) {
-<div class="mt-2 pl-4">
+<div class="mt-2">
   <app-category-menu #categoryMenu [selectedItem]="selectedItem()"
-  (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddSubfolder)="addSubfolder($event)" ></app-category-menu>
+  (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" ></app-category-menu>
   <mat-tree #categoryTree [dataSource]="categoryListData()" [childrenAccessor]="childrenAccessor">
     <!-- Leaf Nodes -->
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="10"
@@ -22,7 +22,7 @@
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding matTreeNodePaddingIndent="10"
       [class.!bg-blue-50]="node.isSelected" class="hover:!bg-teal-50">
       <div class="flex flex-1">
-        <button matIconButton [disableRipple]="true" (click)="categoryTree.toggle(node)"
+        <button matIconButton [disableRipple]="true" (click)="toggleCategory(node)"
           class="!text-slate-400 hover:!text-blue-500 transition-colors">
           <mat-icon class="scale-75 text-slate-400 hover:!text-black action-expand">{{categoryTree.isExpanded(node) ?
             'expand_more' : 'chevron_right'}}</mat-icon>

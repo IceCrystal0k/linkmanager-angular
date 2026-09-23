@@ -1,19 +1,20 @@
-import { Component, signal, inject, OnInit } from '@angular/core';
+import { Component, signal, inject, OnInit, computed } from '@angular/core';
 
 import { Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../services/auth';
 import { CategoryList } from '../category/category-list';
 
 import { LinkService, LinkItem } from '../../services/link'; // Import service & interface
-import { CategoryService } from '../../services/category';
+import { CategoryService, CategoryModel } from '../../services/category';
 import { ModuleService } from '../../services/module';
 
 @Component({
-    imports: [MatSidenavModule, MatListModule, MatButtonModule, MatIconModule, CategoryList],
+    imports: [MatSidenavModule, MatListModule, MatButtonModule, MatIconModule, CategoryList, MatTooltipModule],
     selector: 'app-dashboard',
     styleUrl: './dashboard.scss',
     templateUrl: './dashboard.html'
@@ -22,14 +23,17 @@ export class Dashboard implements OnInit {
     protected readonly title = signal('organizer');
     private router = inject(Router);
     private authService = inject(AuthService); // Inject the service
+
     // Inject your isolated domain service
     private linkService = inject(LinkService);
     private categoryService = inject(CategoryService);
     private moduleService = inject(ModuleService);
     private selectedCategory: any = null;
 
+    tooltipPosition = 'above' as TooltipPosition;
+
     icon1 = signal('link');
-    icon2 = signal('folder')
+    icon2 = signal('folder');
 
     isSidebarExpanded = signal(true);
     // Track the currently selected item details
@@ -59,13 +63,24 @@ export class Dashboard implements OnInit {
         this.moduleService.fetchModulesStatic();
     }
 
-    categoriesForModule(moduleId: string) {
-        return this.categories().filter((category) => category.module_id === moduleId);
+    categoriesForModule = computed(() => {
+        const grouped = new Map<string, CategoryModel[]>();
+        for (const category of this.categories()) {
+            const items = grouped.get(category.module_id) ?? [];
+            items.push(category);
+            grouped.set(category.module_id, items);
+        }
+
+        return grouped;
+    });
+
+    log(data: any) {
+        console.log(data);
     }
 
     toggleSidebar() {
         this.isSidebarExpanded.update((val) => !val);
-        this.icon1.update((val) => val === 'link' ? 'menu' : 'link');
+        this.icon1.update((val) => (val === 'link' ? 'menu' : 'link'));
     }
 
     selectLink(link: any) {
