@@ -9,7 +9,7 @@ import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 import { CategoryEdit } from './category-edit';
 import { slugify } from '../../lib/string-util';
 import { getExpandedNodeIds, restoreExpandedNodes } from '../../lib/ui-util';
-import { CategoryService } from '../../services/category';
+import { CategoryModel, CategoryService } from '../../services/category';
 
 export interface CategoryNode {
     name: string;
@@ -84,7 +84,7 @@ export class CategoryList {
     }
 
     toggleCategory(node: CategoryNode) {
-      console.log('Toggling category:', node);
+        console.log('Toggling category:', node);
         if (node.id && this.categoryTree?.isExpanded(node)) {
             this.expandedNodeIds.delete(node.id);
         } else if (node.id) {
@@ -108,11 +108,12 @@ export class CategoryList {
                 parent_id: item.parent_id ?? '',
                 slug: item.name ? slugify(item.name || '') : '',
                 id: item.id ?? 0,
-                module_id: item.module_id ?? '',
+                module_id: item.module_id ?? ''
             },
             data: {
-              moduleId: item?.module_id ?? this.moduleId() ?? ''
+                moduleId: item?.module_id ?? this.moduleId() ?? ''
             },
+            saveCallback: (id: string, result: CategoryModel) => this.saveHandler(id, result),
             id: item.id
         };
         const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
@@ -120,35 +121,19 @@ export class CategoryList {
         });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
-            if (result !== false) {
-                console.log('Save confirmed for category:', item.id, 'Result:', result);
-                // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
-                if (item?.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
-                    this.expandedNodeIds.add(result.parent_id);
-                }
-                this.categoryService.updateItem(item.id || '', result);
-
-                // this.categoryService.updateItem(result).subscribe({
-                //     next: (response) => {
-                //         // Success callback
-                //         console.log('Category updated successful!', response);
-                //         // close the dialog
-                //         // this.dialog.close();
-                //     },
-                //     error: (err) => {
-                //         // Error callback (handles 401, 500, network issues, etc.)
-                //         console.error('Failed to update category', err);
-                //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
-                //     }
-                // });
-
-                // The service replaces ancestor objects while removing the node.
-                // Restore expansion after the tree has rendered those new objects.
-                // setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
+            if (result === false) {
+                console.log('Save cancelled for category:', item.id);
                 return;
             }
 
-            console.log('Save cancelled for category:', item.id);
+            if (item.children) {
+                result.children = item.children; // Preserve children if they exist
+            }
+            console.log('Save confirmed for category:', item.id, 'Result:', result);
+            // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
+            if (item?.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
+                this.expandedNodeIds.add(result.parent_id);
+            }
         });
     }
 
@@ -196,48 +181,74 @@ export class CategoryList {
                 parent_id: item?.id ?? '',
                 slug: '',
                 id: 0,
-                module_id: item?.module_id ?? this.moduleId() ?? '',
+                module_id: item?.module_id ?? this.moduleId() ?? ''
             },
             data: {
-              moduleId: item?.module_id ?? this.moduleId() ?? ''
+                moduleId: item?.module_id ?? this.moduleId() ?? ''
             },
-            id: null
+            id: '',
+            saveCallback: (id: string, result: CategoryModel) => this.saveHandler(id, result),
         };
         const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
             width: '400px'
         });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
-            if (result !== false) {
-                console.log('Create confirmed for category:', item?.name, 'Result:', result);
-                // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
-                // If the parent node was not expanded before, expand it after adding the new category
-                if (item?.id && !this.expandedNodeIds.has(item.id)) {
-                    this.expandedNodeIds.add(item.id);
-                }
-                this.categoryService.createItem(result);
-                // this.categoryService.createItem(result).subscribe({
-                //     next: (response) => {
-                //         // Success callback
-                //         console.log('Category created successful!', response);
-                //         // close the dialog
-                //         // this.dialog.close();
-                //     },
-                //     error: (err) => {
-                //         // Error callback (handles 401, 500, network issues, etc.)
-                //         console.error('Failed to create category', err);
-                //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
-                //     }
-                // });
-
-                // The service replaces ancestor objects while removing the node.
-                // Restore expansion after the tree has rendered those new objects.
-                // setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
+            if (result === false) {
+                console.log('Create cancelled for category');
                 return;
             }
 
-            console.log('Create cancelled for category');
+            console.log('Create confirmed for category:', item?.name, 'Result:', result);
+            // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
+            // If the parent node was not expanded before, expand it after adding the new category
+            const expandId = item?.id ?? result.parent_id;
+            if (expandId && !this.expandedNodeIds.has(expandId)) {
+                this.expandedNodeIds.add(expandId);
+            }
         });
+    }
+
+    async saveHandler(id: string, data: CategoryModel): Promise<CategoryModel | false> {
+        if (id) {
+            this.categoryService.updateItem(id, data);
+            // this.categoryService.updateItem(result).subscribe({
+            //     next: (response) => {
+            //         // Success callback
+            //         console.log('Category updated successful!', response);
+            //         // close the dialog
+            //         // this.dialog.close();
+            //     },
+            //     error: (err) => {
+            //         // Error callback (handles 401, 500, network issues, etc.)
+            //         console.error('Failed to update category', err);
+            //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
+            //     }
+            // });
+
+            // The service replaces ancestor objects while removing the node.
+            // Restore expansion after the tree has rendered those new objects.
+            // setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
+
+             return Promise.resolve(data); // Return a resolved promise to indicate success
+        }
+        else {
+            this.categoryService.createItem(data);
+            // this.categoryService.createItem(result).subscribe({
+            //     next: (response) => {
+            //         // Success callback
+            //         console.log('Category created successful!', response);
+            //         // close the dialog
+            //         // this.dialog.close();
+            //     },
+            //     error: (err) => {
+            //         // Error callback (handles 401, 500, network issues, etc.)
+            //         console.error('Failed to create category', err);
+            //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
+            //     }
+            // });
+            return Promise.resolve(data);
+        }
     }
 
     onCategorySelect(node: CategoryNode, tree: MatTree<CategoryNode>, event: MouseEvent) {

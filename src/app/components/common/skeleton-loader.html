@@ -1,0 +1,10 @@
+@if (loading()) {
+  <div class="skeleton-list" aria-label="Loading modules" role="status">
+    @for (item of skeletonItems; track item) {
+      <div class="skeleton-row">
+        <span class="skeleton-icon"></span>
+        <span class="skeleton-label"></span>
+      </div>
+    }
+  </div>
+}

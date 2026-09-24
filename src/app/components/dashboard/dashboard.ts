@@ -1,4 +1,5 @@
 import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { finalize } from 'rxjs';
 
 import { Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
@@ -8,13 +9,24 @@ import { MatButtonModule } from '@angular/material/button';
 import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../services/auth';
 import { CategoryList } from '../category/category-list';
+import { SkeletonLoader } from '../common/skeleton-loader';
+import { SpinnerLoader } from '../common/spinner-loader';
 
 import { LinkService, LinkItem } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
 import { ModuleService } from '../../services/module';
 
 @Component({
-    imports: [MatSidenavModule, MatListModule, MatButtonModule, MatIconModule, CategoryList, MatTooltipModule],
+    imports: [
+        MatSidenavModule,
+        MatListModule,
+        MatButtonModule,
+        MatIconModule,
+        CategoryList,
+        MatTooltipModule,
+        SkeletonLoader,
+        SpinnerLoader
+    ],
     selector: 'app-dashboard',
     styleUrl: './dashboard.scss',
     templateUrl: './dashboard.html'
@@ -36,6 +48,8 @@ export class Dashboard implements OnInit {
     icon2 = signal('folder');
 
     isSidebarExpanded = signal(true);
+    isModulesLoading = signal(false);
+    isLinksLoading = signal(false);
     // Track the currently selected item details
     selectedLink = signal<any>(null);
 
@@ -54,13 +68,22 @@ export class Dashboard implements OnInit {
             return;
         }
         console.log('Token at startup:', localStorage.getItem('auth_token'));
-        this.linkService.fetchLinks().subscribe({
-            next: (data) => console.log('Links synced successfully from backend!'),
-            error: (err) => console.error('Failed to resolve links payload', err)
-        });
+        this.isLinksLoading.set(true);
+        this.linkService
+            .fetchLinks()
+            .pipe(finalize(() => this.isLinksLoading.set(false)))
+            .subscribe({
+                next: (data) => console.log('Links synced successfully from backend!'),
+                error: (err) => console.error('Failed to resolve links payload', err)
+            });
 
+        this.isModulesLoading.set(true);
         this.categoryService.fetchItemsStatic();
         this.moduleService.fetchModulesStatic();
+        // this.isModulesLoading.set(false);
+        setTimeout(() => {
+            this.isModulesLoading.set(false);
+        }, 2000);
     }
 
     categoriesForModule = computed(() => {

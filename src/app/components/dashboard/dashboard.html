@@ -15,30 +15,33 @@
     </div>
 
     <!-- Category Links Menu -->
-    <mat-nav-list class="p-2">
-      @for (module of modules(); track module.id) {
-        <div class="flex flex-col">
-        <app-category-list
-          #categoryList
-          class="order-2"
-          [moduleId]="module.id"
-          [isSidebarExpanded]="isSidebarExpanded()"
-          (categorySelected)="handleCategorySelection($event)"
-          [categoryListData]="categoriesForModule().get(module.id) || []">
-        </app-category-list>
-        <a mat-list-item class="order-1 rounded-lg mb-1 bg-blue-50 text-blue-600">
-          <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
-          @if (isSidebarExpanded()) { <span class="font-medium">{{ module.name }}</span>
-          <button matIconButton (click)="categoryList.addCategory(null)"
-            class="action-icons ml-auto hover-show" matTooltip="Add Category" [matTooltipPosition]="tooltipPosition">
-            <mat-icon class="text-slate-400">add_circle_outline</mat-icon>
-          </button>
+    @if (isModulesLoading()) {
+      <app-skeleton-loader [loading]="isModulesLoading()" />
+    } @else {
+      <mat-nav-list class="p-2">
+        @for (module of modules(); track module.id) {
+          <div class="flex flex-col">
+          <app-category-list
+            #categoryList
+            class="order-2"
+            [moduleId]="module.id"
+            [isSidebarExpanded]="isSidebarExpanded()"
+            (categorySelected)="handleCategorySelection($event)"
+            [categoryListData]="categoriesForModule().get(module.id) || []">
+          </app-category-list>
+          <a mat-list-item class="order-1 rounded-lg mb-1 bg-blue-50 text-blue-600">
+            <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
+            @if (isSidebarExpanded()) { <span class="font-medium">{{ module.name }}</span>
+            <button matIconButton (click)="categoryList.addCategory(null)"
+              class="action-icons ml-auto hover-show" matTooltip="Add Category" [matTooltipPosition]="tooltipPosition">
+              <mat-icon class="text-slate-400">add_circle_outline</mat-icon>
+            </button>
+          }
+          </a>
+          </div>
         }
-        </a>
-        </div>
-      }
-      <!-- Inside your sidebar list or detail card actions -->
-    </mat-nav-list>
+      </mat-nav-list>
+    }
   </aside>
 
   <!-- MAIN CANVAS CONTROLLER -->
@@ -59,20 +62,24 @@
       </div>
 
       <!-- Scrollable Data Items Row -->
-      <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-        @for (item of links(); track item.id) {
-          <div
-            (click)="selectLink(item)"
-            [class.bg-blue-50/60]="selectedLink()?.id === item.id"
-            class="p-4 hover:bg-slate-50 cursor-pointer transition-colors relative group">
-            <div class="flex justify-between items-start mb-1">
-              <h3 class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{{ item.name }}</h3>
-              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{ item.category.name }}</span>
+      @if (isLinksLoading()) {
+        <app-skeleton-loader [loading]="isLinksLoading()" />
+      } @else {
+        <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
+          @for (item of links(); track item.id) {
+            <div
+              (click)="selectLink(item)"
+              [class.bg-blue-50/60]="selectedLink()?.id === item.id"
+              class="p-4 hover:bg-slate-50 cursor-pointer transition-colors relative group">
+              <div class="flex justify-between items-start mb-1">
+                <h3 class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{{ item.name }}</h3>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{ item.category.name }}</span>
+              </div>
+              <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
             </div>
-            <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
-          </div>
-        }
-      </div>
+          }
+        </div>
+      }
     </div>
 
     <!-- PANE 3: Dynamic Detail Panel View -->

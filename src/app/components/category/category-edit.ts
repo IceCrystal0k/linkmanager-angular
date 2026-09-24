@@ -2,7 +2,7 @@ import { Component, inject, signal, input } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
-import { CategoryService } from '../../services/category';
+import { CategoryService, CategoryModel } from '../../services/category';
 
 interface CategoryOption {
     name: string;
@@ -59,12 +59,12 @@ export class CategoryEdit {
         return this.flattenCategories(moduleCategories, excludeId);
     }
 
-    save() {
+    getSaveData(): CategoryModel | false {
         if (this.categoryForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
             this.categoryForm.patchValue({ id: this.categoryForm.value.slug }); // Ensure id is set to 0 if not provided
             console.log('Form is valid. Ready to submit:', this.categoryForm.value);
-            return this.categoryForm.value; // Return the form value for submission
+            return <CategoryModel>this.categoryForm.value; // Return the form value for submission
         }
         return false; // Indicate that the form is invalid
     }

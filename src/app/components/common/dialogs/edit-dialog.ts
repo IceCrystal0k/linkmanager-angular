@@ -6,7 +6,7 @@ import { Subscription } from 'rxjs';
 
 export interface EditDialogContent<T = unknown> {
     form?: AbstractControl;
-    save?(): T | undefined;
+    getSaveData?(): T | undefined;
 }
 
 export interface EditDialogData {
@@ -16,6 +16,8 @@ export interface EditDialogData {
     componentInputs?: Record<string, unknown>;
     saveButtonText?: string;
     cancelButtonText?: string;
+    id?: string;
+    saveCallback?: (id: string, result: any) => Promise<any>;
 }
 
 interface DialogConfig {
@@ -73,10 +75,13 @@ export class EditDialog implements AfterViewInit, OnDestroy {
         this.formStatusSubscription?.unsubscribe();
     }
 
-    onSave(): void {
+    async onSave(): Promise<void> {
         const editContent = this.contentComponent?.instance as EditDialogContent;
-        const savedData = editContent?.save?.();
-        this.dialogRef.close(savedData ?? true);
+        const savedData = editContent?.getSaveData?.();
+        const result = await this.data.saveCallback?.(this.data.id || '', savedData);
+        if (result !== false) {
+            this.dialogRef.close(savedData ?? true);
+        }
     }
 
     onCancel(): void {

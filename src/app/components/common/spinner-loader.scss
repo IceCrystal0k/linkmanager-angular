@@ -1,0 +1,25 @@
+:host {
+  display: block;
+}
+
+.spinner-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 8rem;
+}
+
+.spinner {
+  width: 2rem;
+  height: 2rem;
+  border: 0.3rem solid #dbeafe;
+  border-top-color: #2563eb;
+  border-radius: 50%;
+  animation: spinner-rotation 0.8s linear infinite;
+}
+
+@keyframes spinner-rotation {
+  to {
+    transform: rotate(360deg);
+  }
+}
