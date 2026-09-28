@@ -6,9 +6,9 @@ import { CategoryService, CategoryModel } from '../../services/category';
 
 interface CategoryOption {
     name: string;
-    id: string;
-    module_id: string;
-    parent_id?: string | null;
+    id: number;
+    module_id: number;
+    parent_id?: number | null;
     children?: CategoryOption[];
 }
 
@@ -21,10 +21,10 @@ interface CategoryOption {
 export class CategoryEdit {
     private fb = inject(FormBuilder);
     private categoryService = inject(CategoryService); // Inject the service
-    moduleId = input<string | null>(null);
+    moduleId = input<number>(0);
     categories = this.categoryService.categories;
 
-    private flattenCategories(categories: CategoryOption[], excludeId: string | null, indentation = ''): CategoryOption[] {
+    private flattenCategories(categories: CategoryOption[], excludeId: number | null, indentation = ''): CategoryOption[] {
         return categories.flatMap((category) => {
           if (category.id === excludeId) {
             return [];
@@ -42,17 +42,17 @@ export class CategoryEdit {
     // Strongly-typed reactive form group definition
     categoryForm = this.fb.nonNullable.group({
         name: ['', [Validators.required, Validators.maxLength(255)]],
-        parent_id: [''],
+        parent_id: [null],
         slug: ['', [Validators.required, Validators.maxLength(255)]],
         order_index: [0],
         description: ['', [Validators.maxLength(1000)]],
-        module_id: [''],
-        id: [''] // Default to 0 for new categories; will be ignored by the backend
+        module_id: [0],
+        id: [0] // Default to 0 for new categories; will be ignored by the backend
     });
 
     readonly form = this.categoryForm;
 
-    getCategoryListFlat(excludeId: string | null = null): CategoryOption[] {
+    getCategoryListFlat(excludeId: number | null = null): CategoryOption[] {
         const moduleCategories = this.categories().filter((category) =>
             category.module_id === this.moduleId()
         );
@@ -62,7 +62,7 @@ export class CategoryEdit {
     getSaveData(): CategoryModel | false {
         if (this.categoryForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
-            this.categoryForm.patchValue({ id: this.categoryForm.value.slug }); // Ensure id is set to 0 if not provided
+            // this.categoryForm.patchValue({ id: this.categoryForm.value.slug }); // Ensure id is set to 0 if not provided
             console.log('Form is valid. Ready to submit:', this.categoryForm.value);
             return <CategoryModel>this.categoryForm.value; // Return the form value for submission
         }

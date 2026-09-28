@@ -12,7 +12,7 @@ import { CategoryList } from '../category/category-list';
 import { SkeletonLoader } from '../common/skeleton-loader';
 import { SpinnerLoader } from '../common/spinner-loader';
 
-import { LinkService, LinkItem } from '../../services/link'; // Import service & interface
+import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
 import { ModuleService } from '../../services/module';
 
@@ -70,7 +70,7 @@ export class Dashboard implements OnInit {
         console.log('Token at startup:', localStorage.getItem('auth_token'));
         this.isLinksLoading.set(true);
         this.linkService
-            .fetchLinks()
+            .fetchItems()
             .pipe(finalize(() => this.isLinksLoading.set(false)))
             .subscribe({
                 next: (data) => console.log('Links synced successfully from backend!'),
@@ -78,16 +78,20 @@ export class Dashboard implements OnInit {
             });
 
         this.isModulesLoading.set(true);
-        this.categoryService.fetchItemsStatic();
+        this.categoryService.fetchItems().pipe(finalize(() => this.isModulesLoading.set(false)))
+            .subscribe({
+                next: (data) => console.log('Categories synced successfully from backend!'),
+                error: (err) => console.error('Failed to resolve categories payload', err)
+            });
         this.moduleService.fetchModulesStatic();
         // this.isModulesLoading.set(false);
-        setTimeout(() => {
-            this.isModulesLoading.set(false);
-        }, 2000);
+        // setTimeout(() => {
+        //     this.isModulesLoading.set(false);
+        // }, 2000);
     }
 
     categoriesForModule = computed(() => {
-        const grouped = new Map<string, CategoryModel[]>();
+        const grouped = new Map<number, CategoryModel[]>();
         for (const category of this.categories()) {
             const items = grouped.get(category.module_id) ?? [];
             items.push(category);

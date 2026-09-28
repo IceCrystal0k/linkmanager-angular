@@ -6,7 +6,7 @@ import { CategoryModel } from './category';
 
 // Define a strict TypeScript interface for your Module data structure
 export interface ModuleModel {
-    id: string;
+    id: number;
     name: string;
     slug: string;
     icon: string;
@@ -30,7 +30,7 @@ export class ModuleService {
     fetchModulesStatic() {
         const modules = <ModuleModel[]>[
             {
-                id: 'links',
+                id: 1,
                 name: 'Personal Links',
                 slug: 'personal-links',
                 order_index: 1,
@@ -40,7 +40,7 @@ export class ModuleService {
             },
             {
                 name: 'Books',
-                id: 'books',
+                id: 2,
                 slug: 'books',
                 order_index: 2,
                 description: 'A module for managing a collection of books.',
@@ -49,7 +49,7 @@ export class ModuleService {
             },
             {
                 name: 'Entertainment',
-                id: 'entertainment',
+                id: 3,
                 slug: 'entertainment',
                 order_index: 3,
                 description: 'A module for managing entertainment-related content.',
@@ -78,7 +78,7 @@ export class ModuleService {
     }
 
     // 3. PUT: Update an existing module
-    updateModule(id: string, updatedData: Partial<ModuleModel>): Observable<ModuleModel> {
+    updateModule(id: number, updatedData: Partial<ModuleModel>): Observable<ModuleModel> {
         return this.http.put<ModuleModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
             tap((savedModule) => {
                 // Map over the signal array and replace the old item with the updated one
@@ -90,7 +90,7 @@ export class ModuleService {
     }
 
     // 4. DELETE: Erase a module
-    deleteModule(id: string): Observable<void> {
+    deleteModule(id: number): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
             tap(() => {
                 // Remove the item from our local signal array

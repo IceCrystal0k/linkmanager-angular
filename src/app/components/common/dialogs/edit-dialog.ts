@@ -16,8 +16,8 @@ export interface EditDialogData {
     componentInputs?: Record<string, unknown>;
     saveButtonText?: string;
     cancelButtonText?: string;
-    id?: string;
-    saveCallback?: (id: string, result: any) => Promise<any>;
+    id?: number;
+    saveCallback?: (id: number, result: any) => Promise<any>;
 }
 
 interface DialogConfig {
@@ -78,7 +78,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     async onSave(): Promise<void> {
         const editContent = this.contentComponent?.instance as EditDialogContent;
         const savedData = editContent?.getSaveData?.();
-        const result = await this.data.saveCallback?.(this.data.id || '', savedData);
+        const result = await this.data.saveCallback?.(this.data.id || 0, savedData);
         if (result !== false) {
             this.dialogRef.close(savedData ?? true);
         }

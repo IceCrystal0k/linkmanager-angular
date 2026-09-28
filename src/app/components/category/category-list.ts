@@ -13,10 +13,10 @@ import { CategoryModel, CategoryService } from '../../services/category';
 
 export interface CategoryNode {
     name: string;
-    id?: string;
-    parent_id?: string | null;
+    id?: number;
+    parent_id?: number | null;
     slug?: string;
-    module_id?: string;
+    module_id?: number;
     children?: CategoryNode[];
 }
 
@@ -30,7 +30,7 @@ export interface CategoryNode {
 export class CategoryList {
     private dialogService = inject(UiDialogService); // Inject the service
     private categoryService = inject(CategoryService);
-    moduleId = input<string | null>(null);
+    moduleId = input<number>(0);
 
     @ViewChild('categoryTree') private categoryTree?: MatTree<CategoryNode>;
 
@@ -44,7 +44,7 @@ export class CategoryList {
 
     // Tree category structure
     categoryListData = input<CategoryNode[]>([]);
-    private expandedNodeIds = new Set<string>();
+    private expandedNodeIds = new Set<number>();
 
     // Effect to restore expanded nodes when categoryListData changes
     private restoreExpansionOnDataChange = effect(() => {
@@ -108,12 +108,12 @@ export class CategoryList {
                 parent_id: item.parent_id ?? '',
                 slug: item.name ? slugify(item.name || '') : '',
                 id: item.id ?? 0,
-                module_id: item.module_id ?? ''
+                module_id: item.module_id ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? ''
+                moduleId: item?.module_id ?? this.moduleId() ?? 0
             },
-            saveCallback: (id: string, result: CategoryModel) => this.saveHandler(id, result),
+            saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result),
             id: item.id
         };
         const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
@@ -181,13 +181,13 @@ export class CategoryList {
                 parent_id: item?.id ?? '',
                 slug: '',
                 id: 0,
-                module_id: item?.module_id ?? this.moduleId() ?? ''
+                module_id: item?.module_id ?? this.moduleId() ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? ''
+                moduleId: item?.module_id ?? this.moduleId() ?? 0
             },
-            id: '',
-            saveCallback: (id: string, result: CategoryModel) => this.saveHandler(id, result),
+            id: 0, // New category, so id is 0
+            saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result),
         };
         const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
             width: '400px'
@@ -209,7 +209,7 @@ export class CategoryList {
         });
     }
 
-    async saveHandler(id: string, data: CategoryModel): Promise<CategoryModel | false> {
+    async saveHandler(id: number, data: CategoryModel): Promise<CategoryModel | false> {
         if (id) {
             this.categoryService.updateItem(id, data);
             // this.categoryService.updateItem(result).subscribe({

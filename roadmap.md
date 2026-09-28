@@ -22,8 +22,8 @@ This roadmap breaks the remaining work into small, independently verifiable task
 
 ### 1.2 Define shared domain types
 
-- [ ] Extend `CategoryModel` with the fields actually returned by the API and make optional fields explicit.
-- [ ] Extend `LinkItem` with username, password, long description, email, rating, last opened time, and last check result fields.
+- [x] Extend `CategoryModel` with the fields actually returned by the API and make optional fields explicit.
+- [x] Extend `LinkModel` with username, password, short description, email, rating, last opened time, and last check result fields.
 - [ ] Add typed request models for create and update instead of passing untyped partial objects throughout the UI.
 - [ ] Add typed API response models for list, validation error, and link-check responses.
 - [ ] Decide how passwords are masked in the UI and ensure they are never written to logs.

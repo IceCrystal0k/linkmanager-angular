@@ -5,11 +5,11 @@ import ServiceConfig from '../services/service.config';
 
 // Define a strict TypeScript interface for your Category data structure
 export interface CategoryModel {
-    id: string;
-    module_id: string;
+    id: number;
+    module_id: number;
     name: string;
     slug: string;
-    parent_id: string | null;
+    parent_id: number | null;
     order_index: number;
     description: string;
     children?: CategoryModel[];
@@ -30,64 +30,64 @@ export class CategoryService {
         const categories = <CategoryModel[]>[
             {
                 name: 'Work',
-                module_id: 'links',
-                id: 'work',
+                module_id: 1,
+                id: 1,
                 parent_id: null,
                 children: [
-                    { name: 'Projects', id: 'work-projects', module_id: 'links', parent_id: 'work' },
-                    { name: 'Credentials', id: 'work-credentials', module_id: 'links', parent_id: 'work' },
-                    { name: 'Documentation', id: 'work-docs', module_id: 'links', parent_id: 'work' }
+                    { name: 'Projects', id: 2, module_id: 1, parent_id: 1 },
+                    { name: 'Credentials', id: 3, module_id: 1, parent_id: 1 },
+                    { name: 'Documentation', id: 4, module_id: 1, parent_id: 1 }
                 ]
             },
             {
                 name: 'Personal',
-                id: 'personal',
-                module_id: 'links',
+                id: 5,
+                module_id: 1,
                 parent_id: null,
                 children: [
                     {
                         name: 'Finance',
-                        id: 'pers-finance',
-                        module_id: 'links',
-                        parent_id: 'personal',
+                        id: 6,
+                        module_id: 1,
+                        parent_id: 5,
                         children: [
                             {
                                 name: 'Green',
-                                id: 'pers-finance-green',
-                                module_id: 'links',
-                                parent_id: 'pers-finance',
+                                id: 7,
+                                module_id: 1,
+                                parent_id: 6,
                                 children: [
                                     {
                                         name: 'Broccoli',
-                                        id: 'pers-finance-green-brocoli',
-                                        module_id: 'links',
-                                        parent_id: 'pers-finance-green'
+                                        id: 8,
+                                        module_id: 1,
+                                        parent_id: 7
                                     },
                                     {
                                         name: 'Brussels sprouts',
-                                        id: 'pers-finance-green-bussels-sprouts',
-                                        module_id: 'links',
-                                        parent_id: 'pers-finance-green'
+                                        id: 9,
+                                        module_id: 1,
+                                        parent_id: 7
                                     }
                                 ]
                             },
                             {
                                 name: 'Orange',
-                                id: 'pers-finance-orange',
-                                module_id: 'links',
-                                parent_id: 'pers-finance',
+                                id: 10,
+                                module_id: 1,
+                                parent_id: 6,
                                 children: [
                                     {
                                         name: 'Pumpkins',
-                                        id: 'pers-finance-orange-pumpkin',
-                                        module_id: 'links',
-                                        parent_id: 'pers-finance-orange'
+                                        id: 11,
+                                        module_id: 1,
+                                        parent_id: 10
                                     },
                                     {
                                         name: 'Carrots',
-                                        id: 'pers-finance-orange-carrots',
-                                        module_id: 'links',
-                                        parent_id: 'pers-finance-orange'
+                                        id: 12,
+                                        module_id: 1,
+                                        parent_id: 10
                                     }
                                 ]
                             }
@@ -95,47 +95,47 @@ export class CategoryService {
                     },
                     {
                         name: 'Shopping',
-                        id: 'pers-shopping',
-                        module_id: 'links',
-                        parent_id: 'personal',
+                        id: 13,
+                        module_id: 1,
+                        parent_id: 5,
                         children: [
                             {
                                 name: 'Green',
-                                id: 'pers-shopping-green',
-                                module_id: 'links',
-                                parent_id: 'pers-shopping',
+                                id: 14,
+                                module_id: 1,
+                                parent_id: 13,
                                 children: [
                                     {
                                         name: 'Broccoli',
-                                        id: 'shopping-green-brocoli',
-                                        module_id: 'links',
-                                        parent_id: 'pers-shopping-green'
+                                        id: 16,
+                                        module_id: 1,
+                                        parent_id: 14
                                     },
                                     {
                                         name: 'Brussels sprouts',
-                                        id: 'shopping-green-bussels-sprouts',
-                                        module_id: 'links',
-                                        parent_id: 'pers-shopping-green'
+                                        id: 17,
+                                        module_id: 1,
+                                        parent_id: 14
                                     }
                                 ]
                             },
                             {
                                 name: 'Orange',
-                                id: 'pers-shopping-orange',
-                                module_id: 'links',
-                                parent_id: 'pers-shopping',
+                                id: 15,
+                                module_id: 1,
+                                parent_id: 13,
                                 children: [
                                     {
                                         name: 'Pumpkins',
-                                        id: 'shopping-orange-pumpkin',
-                                        module_id: 'links',
-                                        parent_id: 'pers-shopping-orange'
+                                        id: 18,
+                                        module_id: 1,
+                                        parent_id: 15
                                     },
                                     {
                                         name: 'Carrots',
-                                        id: 'shopping-orange-carrots',
-                                        module_id: 'links',
-                                        parent_id: 'pers-shopping-orange'
+                                        id: 19,
+                                        module_id: 1,
+                                        parent_id: 15
                                     }
                                 ]
                             }
@@ -145,8 +145,8 @@ export class CategoryService {
             },
             {
                 name: 'Entertainment',
-                id: 'entertainment',
-                module_id: 'books',
+                id: 20,
+                module_id: 2,
                 parent_id: null
             }
         ];
@@ -154,9 +154,12 @@ export class CategoryService {
     }
 
     // 1. GET: Fetch all categories from the API and update the signal
-    fetchItems(): Observable<CategoryModel[]> {
-        return this.http.get<CategoryModel[]>(this.apiUrl).pipe(
-            tap((data) => this.categorySignal.set(data)) // Updates the global signal state smoothly
+    fetchItems(): Observable<HttpListResponse> {
+        return this.http.get<HttpListResponse>(`${this.apiUrl}categories`).pipe(
+            tap((data) => {
+                console.log('Fetched categories from API:', (data.data as any).children);
+                return this.categorySignal.set((data.data as any).children); // Updates the global signal state smoothly
+            })
         );
     }
 
@@ -169,7 +172,7 @@ export class CategoryService {
                             : [...currentCategories, category]
             );
             return <any>null;
-      // return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
+      // return this.http.post<CategoryModel>(`${this.apiUrl}categories`, newCategory).pipe(
         //     tap((createdCategory) => {
         //         // Optimistically add the new item to our local signal array instantly
         //         this.categorySignal.update((currentCategories) => [...currentCategories, createdCategory]);
@@ -178,10 +181,10 @@ export class CategoryService {
     }
 
     // 3. PUT: Update an existing category
-    updateItem(id: string, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
+    updateItem(id: number, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
         this.categorySignal.update((currentCategories) => this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel));
         return <any>null;
-        // return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
+        // return this.http.put<CategoryModel>(`${this.apiUrl}categories/${id}`, updatedData).pipe(
         //     tap((savedCategory) => {
         //         // Map over the signal array and replace the old item with the updated one
         //         this.categorySignal.update((currentCategories) =>
@@ -192,17 +195,17 @@ export class CategoryService {
     }
 
     // 4. DELETE: Erase a category
-    deleteItem(id: string): Observable<void> {
+    deleteItem(id: number): Observable<void> {
         this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
         return <any>null;
-        // return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+        // return this.http.delete<void>(`${this.apiUrl}categories/${id}`).pipe(
         //     tap(() => {
         //         this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
         //     })
         // );
     }
 
-    private removeListItem(list: CategoryModel[], id: string): CategoryModel[] {
+    private removeListItem(list: CategoryModel[], id: number): CategoryModel[] {
         return list
             .filter((item) => item.id !== id)
             .map((item) => ({
@@ -236,6 +239,8 @@ export class CategoryService {
         }
         // If the parent_id has changed, we need to remove it from the old parent and add it to the new parent
         if (listItem.parent_id !== newItem.parent_id) {
+            // preserve the children
+            newItem.children = listItem.children;
             // Remove from old parent
             list = this.removeListItem(list, newItem.id);
             // Add to new parent
@@ -257,7 +262,7 @@ export class CategoryService {
         });
       }
 
-      private getCategoryById(list: CategoryModel[], id: string): CategoryModel | null {
+      private getCategoryById(list: CategoryModel[], id: number): CategoryModel | null {
         for (const item of list) {
             if (item.id === id) {
                 return item;

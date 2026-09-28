@@ -4,11 +4,11 @@
  * @param matTree material tree instance
  * @returns a set with the expanded node ids
  */
-export function getExpandedNodeIds(nodes: any[], matTree: any): Set<string> {
+export function getExpandedNodeIds(nodes: any[], matTree: any): Set<number> {
     if (!matTree) {
-        return new Set<string>();
+        return new Set<number>();
     }
-    const expandedNodeIds = new Set<string>();
+    const expandedNodeIds = new Set<number>();
 
     const collectExpandedNodes = (currentNodes: any[]) => {
         for (const node of currentNodes) {
@@ -33,7 +33,7 @@ export function getExpandedNodeIds(nodes: any[], matTree: any): Set<string> {
  * @param matTree material tree instance
  * @returns
  */
-export function restoreExpandedNodes(nodes: any[], expandedNodeIds: Set<string>, matTree: any): void {
+export function restoreExpandedNodes(nodes: any[], expandedNodeIds: Set<number>, matTree: any): void {
     if (!matTree) {
         return;
     }
