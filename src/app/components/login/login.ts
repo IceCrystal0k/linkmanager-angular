@@ -4,6 +4,7 @@ import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth';
+import { getHttpErrormessage } from '../../lib/http-util';
 
 @Component({
     selector: 'app-login',
@@ -34,10 +35,12 @@ export class Login {
                     console.log('Login successful!', response);
                     this.router.navigate(['/dashboard']);
                 },
-                error: (err) => {
+                error: (err: any) => {
                     // Error callback (handles 401, 500, network issues, etc.)
                     console.error('Login failed', err);
-                    this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Invalid email or password.');
+
+                    let errorMsg = getHttpErrormessage(err, 'Invalid email or password.');
+                    this.errorMessage.set(errorMsg);
                 }
             });
         }
