@@ -3,7 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import ServiceConfig from '../services/service.config';
 
-// Define a strict TypeScript interface for your Category data structure
+// Category data structure from api
 export interface CategoryModel {
     id: number;
     module_id: number;
@@ -18,11 +18,19 @@ export interface CategoryModel {
 @Injectable({
     providedIn: 'root'
 })
+
+/**
+ *  CategoryService is responsible for managing the state of categories in the application.
+ *  It provides methods to fetch, create, update, and delete categories, while maintaining a single source of truth for the category state using Angular's signal mechanism.
+ *
+ * @export
+ * @class CategoryService
+ */
 export class CategoryService {
     private http = inject(HttpClient);
     private apiUrl = ServiceConfig.apiUrl;
 
-    // The single source of truth for your categories state across the app
+    // The single source of truth for the categories state across the app
     private categorySignal = signal<CategoryModel[]>([]);
     readonly categories = this.categorySignal.asReadonly();
 
@@ -91,7 +99,7 @@ export class CategoryService {
                                     }
                                 ]
                             }
-                        ],
+                        ]
                     },
                     {
                         name: 'Shopping',
@@ -139,7 +147,7 @@ export class CategoryService {
                                     }
                                 ]
                             }
-                        ],
+                        ]
                     }
                 ]
             },
@@ -165,30 +173,32 @@ export class CategoryService {
 
     // 2. POST: Create a new category
     createItem(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
-            const category = newCategory as CategoryModel;
-            this.categorySignal.update((currentCategories) =>
-                    category.parent_id
-                            ? this.addListItem(currentCategories, category)
-                            : [...currentCategories, category]
-            );
-            return <any>null;
-      // return this.http.post<CategoryModel>(`${this.apiUrl}categories`, newCategory).pipe(
+        const category = newCategory as CategoryModel;
+        this.categorySignal.update((currentCategories) =>
+            category.parent_id ? this.addListItem(currentCategories, category) : [...currentCategories, category]
+        );
+        return <any>null;
+        // return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
         //     tap((createdCategory) => {
         //         // Optimistically add the new item to our local signal array instantly
-        //         this.categorySignal.update((currentCategories) => [...currentCategories, createdCategory]);
+        //         this.categorySignal.update((currentCategories) =>
+        //             category.parent_id ? this.addListItem(currentCategories, category) : [...currentCategories, category]
+        //         );
         //     })
         // );
     }
 
     // 3. PUT: Update an existing category
     updateItem(id: number, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
-        this.categorySignal.update((currentCategories) => this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel));
+        this.categorySignal.update((currentCategories) =>
+            this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel)
+        );
         return <any>null;
-        // return this.http.put<CategoryModel>(`${this.apiUrl}categories/${id}`, updatedData).pipe(
-        //     tap((savedCategory) => {
+        // return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
+        //     tap((updatedCategory) => {
         //         // Map over the signal array and replace the old item with the updated one
         //         this.categorySignal.update((currentCategories) =>
-        //             currentCategories.map((category) => (category.id === id ? savedCategory : category))
+        //             this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel)
         //         );
         //     })
         // );
@@ -198,24 +208,36 @@ export class CategoryService {
     deleteItem(id: number): Observable<void> {
         this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
         return <any>null;
-        // return this.http.delete<void>(`${this.apiUrl}categories/${id}`).pipe(
+        //  return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
         //     tap(() => {
-        //         this.categorySignal.update((currentCategories) => this.removeCategory(currentCategories, id));
+        //         this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
         //     })
         // );
     }
 
+    /**
+     * method to manage item remove from the category state signal.
+     * This method is recursive to handle nested categories.
+     * @param list list of categories to search through
+     * @param id id of the category to remove
+     * @returns the updated list of categories
+     */
     private removeListItem(list: CategoryModel[], id: number): CategoryModel[] {
         return list
             .filter((item) => item.id !== id)
             .map((item) => ({
                 ...item,
-                children: item.children
-                    ? this.removeListItem(item.children, id)
-                    : item.children
+                children: item.children ? this.removeListItem(item.children, id) : item.children
             }));
     }
 
+    /**
+     * method to manage item add to the category state signal.
+     * This method is recursive to handle nested categories.
+     * @param list list of categories to search through
+     * @param newItem the new category to add
+     * @returns the updated list of categories
+     */
     private addListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
         return list.map((item) => {
             if (item.id === newItem.parent_id) {
@@ -225,13 +247,18 @@ export class CategoryService {
                 };
             }
 
-            return item.children
-                ? { ...item, children: this.addListItem(item.children, newItem) }
-                : item;
+            return item.children ? { ...item, children: this.addListItem(item.children, newItem) } : item;
         });
-      }
+    }
 
-      private updateListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
+    /**
+     * method to manage item add to the category state signal.
+     * This method is recursive to handle nested categories.
+     * @param list list of categories to search through
+     * @param newItem the new category to add
+     * @returns the updated list of categories
+     */
+    private updateListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
         const listItem = this.getCategoryById(list, newItem.id);
         if (!listItem) {
             console.warn(`Category with id ${newItem.id} not found for update.`);
@@ -253,16 +280,20 @@ export class CategoryService {
         // If the parent_id hasn't changed, we can just update the item in place
         return list.map((item) => {
             if (item.id === newItem.id) {
-                return {...newItem };
+                return { ...newItem };
             }
 
-            return item.children
-                ? { ...item, children: this.updateListItem(item.children, newItem) }
-                : item;
+            return item.children ? { ...item, children: this.updateListItem(item.children, newItem) } : item;
         });
-      }
+    }
 
-      private getCategoryById(list: CategoryModel[], id: number): CategoryModel | null {
+    /**
+     * gets a category by its id from the list of categories. This method is recursive to handle nested categories.
+     * @param list list of categories to search through
+     * @param id id of the category to find
+     * @returns the found category or null if not found
+     */
+    private getCategoryById(list: CategoryModel[], id: number): CategoryModel | null {
         for (const item of list) {
             if (item.id === id) {
                 return item;
@@ -275,5 +306,5 @@ export class CategoryService {
             }
         }
         return null;
-      }
+    }
 }
