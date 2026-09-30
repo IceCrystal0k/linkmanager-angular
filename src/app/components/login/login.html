@@ -53,6 +53,21 @@
         class="w-full !py-6 !rounded-xl !bg-blue-600 hover:!bg-blue-700 transition-all shadow-lg disabled:!opacity-50 disabled:!cursor-not-allowed">
         Sign In to Portal
       </button>
+
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        <span class="h-px flex-1 bg-slate-200"></span>
+        <span>OR</span>
+        <span class="h-px flex-1 bg-slate-200"></span>
+      </div>
+
+      <button
+        mat-stroked-button
+        type="button"
+        (click)="onGoogleLogin()"
+        class="w-full !py-6 !rounded-xl !border-slate-300 !text-slate-700">
+        <span class="mr-2 font-bold">G</span>
+        Continue with Google
+      </button>
     </form>
 
   </div>

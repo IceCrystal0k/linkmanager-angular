@@ -24,6 +24,35 @@ export class AuthService {
     // Read-only public accessor for your components and guards
     readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
 
+    startGoogleLogin(): void {
+        if (!isPlatformBrowser(this.platformId)) {
+            return;
+        }
+
+        this.http.get<{ url: string }>(`${this.apiUrl}auth/google`).subscribe((data: any) => {
+            // console.log(data.data.url);
+            window.location.assign(data.data.url);
+        });
+    }
+
+    completeSocialLogin(token: string, callback: any, error: any): void {
+        this.http
+            .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token })
+            .pipe(
+                tap((data) => {
+                    console.log(data);
+                })
+            )
+            .subscribe({
+                next: (response) => {
+                    callback(response);
+                },
+                error: (err) => {
+                    error(err);
+                }
+            });
+    }
+
     // Check the initial authentication status based on localStorage
     private checkInitialAuthStatus(): boolean {
         // If running on the server, return false (server doesn't have a localStorage)

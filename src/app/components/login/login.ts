@@ -45,4 +45,9 @@ export class Login {
             });
         }
     }
+
+    onGoogleLogin(): void {
+        this.errorMessage.set(null);
+        this.authService.startGoogleLogin();
+    }
 }

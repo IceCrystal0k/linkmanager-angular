@@ -24,6 +24,14 @@ describe('AuthService', () => {
         expect(service).toBeTruthy();
     });
 
+    it('should request the Google authorization URL', () => {
+        service.startGoogleLogin();
+
+        const request = httpTestingController.expectOne(`${ServiceConfig.apiUrl}auth/google`);
+        expect(request.request.method).toBe('GET');
+        request.flush({ url: 'https://accounts.google.com/oauth' });
+    });
+
     it('should remain unauthenticated when login credentials are rejected', () => {
         const credentials = { username: 'test-user', password: 'wrong-password' };
         let loginError: unknown;
@@ -59,6 +67,15 @@ describe('AuthService', () => {
         });
 
         expect(service.isAuthenticated()).toBeTruthy();
+    });
+
+    it('should authenticate and store the token after Google sign-in', () => {
+        service.completeGoogleLogin('google-token', { first_name: 'Google', last_name: 'User', role_id: '2' });
+
+        expect(service.isAuthenticated()).toBeTruthy();
+        expect(localStorage.getItem('auth_token')).toBe('google-token');
+        expect(localStorage.getItem('user_name')).toBe('Google User');
+        expect(localStorage.getItem('role_id')).toBe('2');
     });
 
     it('should set authentication to false on logout', () => {
