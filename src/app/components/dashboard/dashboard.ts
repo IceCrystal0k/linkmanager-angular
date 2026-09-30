@@ -41,6 +41,8 @@ export class Dashboard implements OnInit {
     private categoryService = inject(CategoryService);
     private moduleService = inject(ModuleService);
     private selectedCategory: any = null;
+    private categoriesLoading = false;
+    private modulesLoading = false;
 
     tooltipPosition = 'above' as TooltipPosition;
 
@@ -68,6 +70,48 @@ export class Dashboard implements OnInit {
             return;
         }
         console.log('Token at startup:', localStorage.getItem('auth_token'));
+        this.fetchModules();
+        this.fetchCategories();
+        this.fetchLinks();
+    }
+
+    fetchModules() {
+        this.isModulesLoading.set(true);
+        this.moduleService
+            .fetchItems()
+            .pipe(
+                finalize(() => {
+                    this.modulesLoading = false;
+                    if (!this.categoriesLoading) {
+                        this.isModulesLoading.set(false);
+                    }
+                })
+            )
+            .subscribe({
+                next: (data) => console.log('Modules synced successfully from backend!'),
+                error: (err) => console.error('Failed to resolve modules payload', err)
+            });
+    }
+
+    fetchCategories() {
+        this.categoriesLoading = true;
+        this.categoryService
+            .fetchItems()
+            .pipe(
+                finalize(() => {
+                    this.categoriesLoading = false;
+                    if (!this.modulesLoading) {
+                        this.isModulesLoading.set(false);
+                    }
+                })
+            )
+            .subscribe({
+                next: (data) => console.log('Categories synced successfully from backend!'),
+                error: (err) => console.error('Failed to resolve categories payload', err)
+            });
+    }
+
+    fetchLinks() {
         this.isLinksLoading.set(true);
         this.linkService
             .fetchItems()
@@ -76,18 +120,6 @@ export class Dashboard implements OnInit {
                 next: (data) => console.log('Links synced successfully from backend!'),
                 error: (err) => console.error('Failed to resolve links payload', err)
             });
-
-        this.isModulesLoading.set(true);
-        this.categoryService.fetchItems().pipe(finalize(() => this.isModulesLoading.set(false)))
-            .subscribe({
-                next: (data) => console.log('Categories synced successfully from backend!'),
-                error: (err) => console.error('Failed to resolve categories payload', err)
-            });
-        this.moduleService.fetchModulesStatic();
-        // this.isModulesLoading.set(false);
-        // setTimeout(() => {
-        //     this.isModulesLoading.set(false);
-        // }, 2000);
     }
 
     categoriesForModule = computed(() => {

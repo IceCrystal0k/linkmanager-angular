@@ -27,7 +27,7 @@ export class ModuleService {
     private moduleSignal = signal<ModuleModel[]>([]);
     readonly modules = this.moduleSignal.asReadonly();
 
-    fetchModulesStatic() {
+    fetchItemsStatic() {
         const modules = <ModuleModel[]>[
             {
                 id: 1,
@@ -61,15 +61,15 @@ export class ModuleService {
     }
 
     // 1. GET: Fetch all modules from the API and update the signal
-    fetchModules(): Observable<ModuleModel[]> {
-        return this.http.get<ModuleModel[]>(this.apiUrl).pipe(
-            tap((data) => this.moduleSignal.set(data)) // Updates the global signal state smoothly
+    fetchItems(): Observable<ModuleModel[]> {
+        return this.http.get<ModuleModel[]>(`${this.apiUrl}users/modules`).pipe(
+            tap((data: any) => this.moduleSignal.set(data.data)) // Updates the global signal state smoothly
         );
     }
 
     // 2. POST: Create a new module
-    createModule(newModule: Partial<ModuleModel>): Observable<ModuleModel> {
-        return this.http.post<ModuleModel>(this.apiUrl, newModule).pipe(
+    createItem(newModule: Partial<ModuleModel>): Observable<ModuleModel> {
+        return this.http.post<ModuleModel>(`${this.apiUrl}modules`, newModule).pipe(
             tap((createdModule) => {
                 // Optimistically add the new item to our local signal array instantly
                 this.moduleSignal.update((currentModules) => [...currentModules, createdModule]);
@@ -78,7 +78,7 @@ export class ModuleService {
     }
 
     // 3. PUT: Update an existing module
-    updateModule(id: number, updatedData: Partial<ModuleModel>): Observable<ModuleModel> {
+    updateItem(id: number, updatedData: Partial<ModuleModel>): Observable<ModuleModel> {
         return this.http.put<ModuleModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
             tap((savedModule) => {
                 // Map over the signal array and replace the old item with the updated one
@@ -90,7 +90,7 @@ export class ModuleService {
     }
 
     // 4. DELETE: Erase a module
-    deleteModule(id: number): Observable<void> {
+    deleteItem(id: number): Observable<void> {
         return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
             tap(() => {
                 // Remove the item from our local signal array

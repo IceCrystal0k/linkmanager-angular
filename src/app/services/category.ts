@@ -164,9 +164,9 @@ export class CategoryService {
     // 1. GET: Fetch all categories from the API and update the signal
     fetchItems(): Observable<HttpListResponse> {
         return this.http.get<HttpListResponse>(`${this.apiUrl}categories`).pipe(
-            tap((data) => {
+            tap((data: any) => {
                 console.log('Fetched categories from API:', (data.data as any).children);
-                return this.categorySignal.set((data.data as any).children); // Updates the global signal state smoothly
+                return this.categorySignal.set(data.data.children); // Updates the global signal state smoothly
             })
         );
     }
