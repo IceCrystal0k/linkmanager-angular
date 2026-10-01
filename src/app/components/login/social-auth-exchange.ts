@@ -27,18 +27,18 @@ export class SocialAuthExchange implements OnInit {
 
     ngOnInit(): void {
         const params = this.route.snapshot.queryParamMap;
-        debugger;
         const code = params.get('exc'); // get exchange code from query params
-        if (!code) {
+        const uid = params.get('uid');
+        if (!code || !uid) {
             this.hasError.set(true);
             return;
         }
-        this.authService.completeSocialLogin(code, this.onSocialLogin, this.onSocialError);
-        this.router.navigate(['/dashboard']);
+        this.authService.completeSocialLogin(code, uid, this.onSocialLogin, this.onSocialError);
     }
 
     onSocialLogin(response: any) {
-        console.log(response);
+        console.log('social login', response);
+        // this.router.navigate(['/dashboard']);
     }
 
     onSocialError(err: any) {

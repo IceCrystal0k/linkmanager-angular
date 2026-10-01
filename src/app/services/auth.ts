@@ -35,9 +35,9 @@ export class AuthService {
         });
     }
 
-    completeSocialLogin(token: string, callback: any, error: any): void {
+    completeSocialLogin(token: string, userId: string, callback: any, error: any): void {
         this.http
-            .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token })
+            .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token, uid: userId })
             .pipe(
                 tap((data) => {
                     console.log(data);

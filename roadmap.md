@@ -14,7 +14,7 @@ This roadmap breaks the remaining work into small, independently verifiable task
 
 ### 1.1 Inventory current models and endpoints
 
-- [ ] Document the category endpoints and response shapes for fetch, create, update, and delete.
+- [x] Document the category endpoints and response shapes for fetch, create, update, and delete.
 - [ ] Document the link endpoints and response shapes for fetch, create, update, delete, bulk delete, and link checking.
 - [ ] Confirm how modules, categories, child categories, and links are related in API responses.
 - [ ] Confirm whether category deletion recursively removes children and links, or whether the client must delete descendants first.
