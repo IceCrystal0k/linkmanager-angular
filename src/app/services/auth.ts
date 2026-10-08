@@ -35,22 +35,14 @@ export class AuthService {
         });
     }
 
-    completeSocialLogin(token: string, userId: string, callback: any, error: any): void {
-        this.http
+    completeSocialLogin(token: string, userId: string): Observable<{ url: string; body: any }> {
+        return this.http
             .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token, uid: userId })
             .pipe(
                 tap((data) => {
                     console.log(data);
                 })
-            )
-            .subscribe({
-                next: (response) => {
-                    callback(response);
-                },
-                error: (err) => {
-                    error(err);
-                }
-            });
+            );
     }
 
     // Check the initial authentication status based on localStorage
@@ -82,6 +74,23 @@ export class AuthService {
                 }
             })
         );
+    }
+
+    /**
+     * setAuthData method is used to set the authentication state and store user information in localStorage after a successful social authentication.
+     * @param data data containing token and user information
+     * @returns
+     */
+    setAuthData(data: any): void {
+      console.log('Setting auth data', data);
+        this.isAuthenticatedSignal.set(true);
+        if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
+          console.log('is browser platform');
+            localStorage.setItem('is_user_logged_in', 'true');
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user_name', `${data.first_name} ${data.last_name}`);
+            localStorage.setItem('role_id', data.role_id);
+        }
     }
 
     /**

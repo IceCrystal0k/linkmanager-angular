@@ -1,5 +1,6 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, PLATFORM_ID } from '@angular/core';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { isPlatformBrowser } from '@angular/common';
 import { AuthService } from '../../services/auth';
 
 @Component({
@@ -23,9 +24,14 @@ export class SocialAuthExchange implements OnInit {
     private route = inject(ActivatedRoute);
     private router = inject(Router);
     private authService = inject(AuthService);
+    private platformId = inject(PLATFORM_ID); // Inject the platform context
     hasError = signal(false);
 
     ngOnInit(): void {
+
+        if (!isPlatformBrowser(this.platformId)) {
+            return;
+        }
         const params = this.route.snapshot.queryParamMap;
         const code = params.get('exc'); // get exchange code from query params
         const uid = params.get('uid');
@@ -33,16 +39,15 @@ export class SocialAuthExchange implements OnInit {
             this.hasError.set(true);
             return;
         }
-        this.authService.completeSocialLogin(code, uid, this.onSocialLogin, this.onSocialError);
-    }
-
-    onSocialLogin(response: any) {
-        console.log('social login', response);
-        // this.router.navigate(['/dashboard']);
-    }
-
-    onSocialError(err: any) {
-        console.log('Error on social login:', err);
-        this.hasError.set(true);
+        this.authService.completeSocialLogin(code, uid).subscribe({
+            next: (response: any) => {
+                console.log('Social login successful', response);
+                this.authService.setAuthData(response.data);
+                this.router.navigate(['/dashboard']);
+            },
+            error: (err) => {
+                this.hasError.set(true);
+            }
+        });
     }
 }
