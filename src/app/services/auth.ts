@@ -1,7 +1,7 @@
 import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http'; // 👈 Import HttpClient
-import { tap, Observable } from 'rxjs'; // 👈 Import RxJS utilities
+import { tap, Observable, of } from 'rxjs'; // 👈 Import RxJS utilities
 import ServiceConfig from '../services/service.config';
 
 @Injectable({
@@ -23,6 +23,24 @@ export class AuthService {
 
     // Read-only public accessor for your components and guards
     readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
+
+    startGoogleLogin(): Observable<{ url: string }> {
+      if (!isPlatformBrowser(this.platformId)) {
+        return of({ url: '' }); // Return an empty URL if not in a browser context
+      }
+
+      return this.http.get<{ url: string }>(`${this.apiUrl}auth/google`);
+    }
+
+    completeSocialLogin(token: string, userId: string): Observable<{ url: string; body: any }> {
+        return this.http
+            .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token, uid: userId })
+            .pipe(
+                tap((data) => {
+                    console.log(data);
+                })
+            );
+    }
 
     // Check the initial authentication status based on localStorage
     private checkInitialAuthStatus(): boolean {
@@ -53,6 +71,23 @@ export class AuthService {
                 }
             })
         );
+    }
+
+    /**
+     * setAuthData method is used to set the authentication state and store user information in localStorage after a successful social authentication.
+     * @param data data containing token and user information
+     * @returns
+     */
+    setAuthData(data: any): void {
+        console.log('Setting auth data', data);
+        this.isAuthenticatedSignal.set(true);
+        if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
+          console.log('is browser platform');
+            localStorage.setItem('is_user_logged_in', 'true');
+            localStorage.setItem('auth_token', data.token);
+            localStorage.setItem('user_name', `${data.first_name} ${data.last_name}`);
+            localStorage.setItem('role_id', data.role_id);
+        }
     }
 
     /**
