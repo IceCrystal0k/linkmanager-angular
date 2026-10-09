@@ -1,15 +1,17 @@
 import { Component, inject, signal } from '@angular/core';
+import { finalize } from 'rxjs';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { AuthService } from '../../services/auth';
 import { getHttpErrormessage } from '../../lib/http-util';
+import { ButtonCustom } from '../common/button-custom';
 
 @Component({
     selector: 'app-login',
     standalone: true,
-    imports: [ReactiveFormsModule, MatButtonModule, MatIconModule],
+    imports: [ReactiveFormsModule, MatButtonModule, MatIconModule, ButtonCustom],
     templateUrl: './login.html'
 })
 export class Login {
@@ -19,6 +21,7 @@ export class Login {
 
     // Manage UI error messages with a simple signal
     errorMessage = signal<string | null>(null);
+    socialLoginLoading = signal(false);
 
     // Strongly-typed reactive form group definition
     loginForm = this.fb.group({
@@ -48,6 +51,20 @@ export class Login {
 
     onGoogleLogin(): void {
         this.errorMessage.set(null);
-        this.authService.startGoogleLogin();
+        this.socialLoginLoading.set(true);
+        this.authService.startGoogleLogin().pipe(
+            finalize(() => this.socialLoginLoading.set(false))
+        ).subscribe({
+            next: (response: any) => {
+                if (response && response.data.url) {
+                    window.location.assign(response.data.url);
+                }
+            },
+            error: (err: any) => {
+                console.error('Google login failed', err);
+                let errorMsg = getHttpErrormessage(err, 'Failed to initiate Google login.');
+                this.errorMessage.set(errorMsg);
+            }
+        });
     }
 }

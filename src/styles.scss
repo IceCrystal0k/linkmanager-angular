@@ -65,3 +65,28 @@ body {
 .mat-mdc-select-panel .mat-mdc-option.display-space .mdc-list-item__primary-text {
   white-space: pre;
 }
+
+.button-custom-loading::before {
+  content: '';
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  margin-inline-end: 0.5em;
+  vertical-align: -0.125em;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: button-custom-spin 0.75s linear infinite;
+}
+
+@keyframes button-custom-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .button-custom-loading::before {
+    animation: none;
+  }
+}

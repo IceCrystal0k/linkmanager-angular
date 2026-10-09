@@ -1,7 +1,7 @@
 import { Injectable, signal, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { HttpClient } from '@angular/common/http'; // 👈 Import HttpClient
-import { tap, Observable } from 'rxjs'; // 👈 Import RxJS utilities
+import { tap, Observable, of } from 'rxjs'; // 👈 Import RxJS utilities
 import ServiceConfig from '../services/service.config';
 
 @Injectable({
@@ -24,15 +24,12 @@ export class AuthService {
     // Read-only public accessor for your components and guards
     readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
 
-    startGoogleLogin(): void {
-        if (!isPlatformBrowser(this.platformId)) {
-            return;
-        }
+    startGoogleLogin(): Observable<{ url: string }> {
+      if (!isPlatformBrowser(this.platformId)) {
+        return of({ url: '' }); // Return an empty URL if not in a browser context
+      }
 
-        this.http.get<{ url: string }>(`${this.apiUrl}auth/google`).subscribe((data: any) => {
-            // console.log(data.data.url);
-            window.location.assign(data.data.url);
-        });
+      return this.http.get<{ url: string }>(`${this.apiUrl}auth/google`);
     }
 
     completeSocialLogin(token: string, userId: string): Observable<{ url: string; body: any }> {
@@ -82,7 +79,7 @@ export class AuthService {
      * @returns
      */
     setAuthData(data: any): void {
-      console.log('Setting auth data', data);
+        console.log('Setting auth data', data);
         this.isAuthenticatedSignal.set(true);
         if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
           console.log('is browser platform');
