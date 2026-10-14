@@ -2,6 +2,7 @@ import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import ServiceConfig from '../services/service.config';
+import { findItemChildrenIds } from '../lib/array-util';
 
 // Category data structure from api
 export interface CategoryModel {
@@ -34,7 +35,14 @@ export class CategoryService {
     private categorySignal = signal<CategoryModel[]>([]);
     readonly categories = this.categorySignal.asReadonly();
 
-    fetchItemsStatic() {
+    flattenCategories(categories: CategoryModel[]): CategoryModel[] {
+      return categories.flatMap(({ children, ...category }) => [
+        category,
+        ...(children ? this.flattenCategories(children) : [])
+      ]);
+    };
+
+    fetchItemsStatic():Observable<HttpListResponse> {
         const categories = <CategoryModel[]>[
             {
                 name: 'Work',
@@ -60,19 +68,19 @@ export class CategoryService {
                         parent_id: 5,
                         children: [
                             {
-                                name: 'Green',
+                                name: 'Green Finance 1',
                                 id: 7,
                                 module_id: 1,
                                 parent_id: 6,
                                 children: [
                                     {
-                                        name: 'Broccoli',
+                                        name: 'Blue Finance 2',
                                         id: 8,
                                         module_id: 1,
                                         parent_id: 7
                                     },
                                     {
-                                        name: 'Brussels sprouts',
+                                        name: 'Red Finance 3',
                                         id: 9,
                                         module_id: 1,
                                         parent_id: 7
@@ -80,19 +88,19 @@ export class CategoryService {
                                 ]
                             },
                             {
-                                name: 'Orange',
+                                name: 'Orange Finance 4',
                                 id: 10,
                                 module_id: 1,
                                 parent_id: 6,
                                 children: [
                                     {
-                                        name: 'Pumpkins',
+                                        name: 'Pumpkins Finance 5',
                                         id: 11,
                                         module_id: 1,
                                         parent_id: 10
                                     },
                                     {
-                                        name: 'Carrots',
+                                        name: 'Carrots Finance 6',
                                         id: 12,
                                         module_id: 1,
                                         parent_id: 10
@@ -158,61 +166,55 @@ export class CategoryService {
                 parent_id: null
             }
         ];
-        this.categorySignal.set(categories);
+
+        const flattenedCategories = this.flattenCategories(categories);
+        this.categorySignal.set(flattenedCategories);
+        return new Observable((observer) => {
+            observer.next({ status: 200, totalCount: flattenedCategories.length, data: flattenedCategories });
+            observer.complete();
+        });
+
     }
 
     // 1. GET: Fetch all categories from the API and update the signal
     fetchItems(): Observable<HttpListResponse> {
         return this.http.get<HttpListResponse>(`${this.apiUrl}categories`).pipe(
             tap((data: any) => {
-                console.log('Fetched categories from API:', (data.data as any).children);
-                return this.categorySignal.set(data.data.children); // Updates the global signal state smoothly
+                console.log('Fetched categories from API:', data.data);
+                return this.categorySignal.set(data.data); // Updates the global signal state smoothly
             })
         );
     }
 
     // 2. POST: Create a new category
-    createItem(newCategory: Partial<CategoryModel>): Observable<CategoryModel> {
-        const category = newCategory as CategoryModel;
-        this.categorySignal.update((currentCategories) =>
-            category.parent_id ? this.addListItem(currentCategories, category) : [...currentCategories, category]
+    createItem(newCategory: Partial<CategoryModel>): Observable<HttpPostResponse> {
+        return this.http.post<HttpPostResponse>(`${this.apiUrl}categories`, newCategory).pipe(
+            tap((createdCategory) => {
+                // add the new item to our local signal array
+                this.categorySignal.update((currentCategories) => this.addListItem(currentCategories, createdCategory.data));
+            })
         );
-        return <any>null;
-        // return this.http.post<CategoryModel>(this.apiUrl, newCategory).pipe(
-        //     tap((createdCategory) => {
-        //         // Optimistically add the new item to our local signal array instantly
-        //         this.categorySignal.update((currentCategories) =>
-        //             category.parent_id ? this.addListItem(currentCategories, category) : [...currentCategories, category]
-        //         );
-        //     })
-        // );
     }
 
     // 3. PUT: Update an existing category
-    updateItem(id: number, updatedData: Partial<CategoryModel>): Observable<CategoryModel> {
-        this.categorySignal.update((currentCategories) =>
-            this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel)
+    updateItem(id: number, updatedData: Partial<CategoryModel>): Observable<HttpPostResponse> {
+        return this.http.put<HttpPostResponse>(`${this.apiUrl}categories/${id}`, updatedData).pipe(
+            tap((updatedCategory) => {
+                // Map over the signal array and replace the old item with the updated one
+                this.categorySignal.update((currentCategories) =>
+                    this.updateListItem(currentCategories, { ...updatedCategory.data, id } as CategoryModel)
+                );
+            })
         );
-        return <any>null;
-        // return this.http.put<CategoryModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
-        //     tap((updatedCategory) => {
-        //         // Map over the signal array and replace the old item with the updated one
-        //         this.categorySignal.update((currentCategories) =>
-        //             this.updateListItem(currentCategories, { ...updatedData, id } as CategoryModel)
-        //         );
-        //     })
-        // );
     }
 
     // 4. DELETE: Erase a category
     deleteItem(id: number): Observable<void> {
-        this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
-        return <any>null;
-        //  return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
-        //     tap(() => {
-        //         this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
-        //     })
-        // );
+         return this.http.delete<void>(`${this.apiUrl}categories/${id}`).pipe(
+            tap(() => {
+                this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
+            })
+        );
     }
 
     /**
@@ -223,12 +225,9 @@ export class CategoryService {
      * @returns the updated list of categories
      */
     private removeListItem(list: CategoryModel[], id: number): CategoryModel[] {
+      const childrenIds = findItemChildrenIds(list, id);
         return list
-            .filter((item) => item.id !== id)
-            .map((item) => ({
-                ...item,
-                children: item.children ? this.removeListItem(item.children, id) : item.children
-            }));
+            .filter((item) => item.id !== id && !childrenIds.includes(item.id))
     }
 
     /**
@@ -239,16 +238,7 @@ export class CategoryService {
      * @returns the updated list of categories
      */
     private addListItem(list: CategoryModel[], newItem: CategoryModel): CategoryModel[] {
-        return list.map((item) => {
-            if (item.id === newItem.parent_id) {
-                return {
-                    ...item,
-                    children: [...(item.children ?? []), newItem]
-                };
-            }
-
-            return item.children ? { ...item, children: this.addListItem(item.children, newItem) } : item;
-        });
+        return [...list, newItem];
     }
 
     /**

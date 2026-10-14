@@ -1,16 +1,9 @@
-import { Component, inject, signal, input } from '@angular/core';
+import { Component, inject, signal, input, computed } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatSelectModule } from '@angular/material/select';
 import { CategoryService, CategoryModel } from '../../services/category';
-
-interface CategoryOption {
-    name: string;
-    id: number;
-    module_id: number;
-    parent_id?: number | null;
-    children?: CategoryOption[];
-}
+import { CategoryOption } from './category-list';
 
 @Component({
     imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule],
@@ -22,19 +15,7 @@ export class CategoryEdit {
     private fb = inject(FormBuilder);
     private categoryService = inject(CategoryService); // Inject the service
     moduleId = input<number>(0);
-    categories = this.categoryService.categories;
-
-    private flattenCategories(categories: CategoryOption[], excludeId: number | null, indentation = ''): CategoryOption[] {
-        return categories.flatMap((category) => {
-          if (category.id === excludeId) {
-            return [];
-          }
-          return [
-            { ...category, name: `${indentation}${category.name}` },
-            ...(category.children ? this.flattenCategories(category.children, excludeId, `${indentation}   `) : [])
-          ];
-        });
-    }
+    categories = input<CategoryOption[]>([]); // Accept categories as an input property
 
     // Manage UI error messages with a simple signal
     errorMessage = signal<string | null>(null);
@@ -52,19 +33,14 @@ export class CategoryEdit {
 
     readonly form = this.categoryForm;
 
-    getCategoryListFlat(excludeId: number | null = null): CategoryOption[] {
-        const moduleCategories = this.categories().filter((category) =>
-            category.module_id === this.moduleId()
-        );
-        return this.flattenCategories(moduleCategories, excludeId);
-    }
-
     getSaveData(): CategoryModel | false {
         if (this.categoryForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
-            // this.categoryForm.patchValue({ id: this.categoryForm.value.slug }); // Ensure id is set to 0 if not provided
             console.log('Form is valid. Ready to submit:', this.categoryForm.value);
-            return <CategoryModel>this.categoryForm.value; // Return the form value for submission
+            const formValue = this.categoryForm.value;
+            formValue.id = formValue.id || 0; // Ensure id is set to 0 if not provided
+            formValue.parent_id = formValue.parent_id || null;
+            return <CategoryModel>formValue; // Return the form value for submission
         }
         return false; // Indicate that the form is invalid
     }

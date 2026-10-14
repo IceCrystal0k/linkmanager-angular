@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
 import { finalize } from 'rxjs';
 
 import { Router } from '@angular/router';
@@ -15,6 +15,7 @@ import { SpinnerLoader } from '../common/spinner-loader';
 import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
 import { ModuleService } from '../../services/module';
+import { buildTree, flattenTree } from '../../lib/array-util';
 
 @Component({
     imports: [
@@ -31,7 +32,7 @@ import { ModuleService } from '../../services/module';
     styleUrl: './dashboard.scss',
     templateUrl: './dashboard.html'
 })
-export class Dashboard implements OnInit {
+export class Dashboard implements OnInit, OnDestroy {
     protected readonly title = signal('organizer');
     private router = inject(Router);
     private authService = inject(AuthService); // Inject the service
@@ -52,16 +53,33 @@ export class Dashboard implements OnInit {
     isSidebarExpanded = signal(true);
     isModulesLoading = signal(false);
     isLinksLoading = signal(false);
+    categoryToast = signal<string | null>(null);
     // Track the currently selected item details
     selectedLink = signal<any>(null);
+    private categoryToastTimeout?: ReturnType<typeof setTimeout>;
 
     // Link our local template variable directly to the read-only Service Signal!
     links = this.linkService.links;
     categories = this.categoryService.categories;
     modules = this.moduleService.modules;
+    // Build a tree structure from the flat category list for display
+    categoryTreeData = computed(() => buildTree(this.categories()));
+    // Flatten the tree structure for display in a dropdown list
+    // categoryList = computed(() => flattenTree(this.categoryTree()));
+    categoryListData = computed(() => flattenTree(this.categoryTreeData()));
 
     ngOnInit() {
         this.loadInitialData();
+    }
+
+    ngOnDestroy() {
+        clearTimeout(this.categoryToastTimeout);
+    }
+
+    showCategoryToast(message: string) {
+        clearTimeout(this.categoryToastTimeout);
+        this.categoryToast.set(message);
+        this.categoryToastTimeout = setTimeout(() => this.categoryToast.set(null), 3500);
     }
 
     loadInitialData() {
@@ -121,17 +139,6 @@ export class Dashboard implements OnInit {
                 error: (err) => console.error('Failed to resolve links payload', err)
             });
     }
-
-    categoriesForModule = computed(() => {
-        const grouped = new Map<number, CategoryModel[]>();
-        for (const category of this.categories()) {
-            const items = grouped.get(category.module_id) ?? [];
-            items.push(category);
-            grouped.set(category.module_id, items);
-        }
-
-        return grouped;
-    });
 
     log(data: any) {
         console.log(data);

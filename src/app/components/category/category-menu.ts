@@ -2,7 +2,7 @@ import { Component, input, output, ViewChild, InputSignal } from '@angular/core'
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenu, MatMenuModule } from '@angular/material/menu';
-import { CategoryNode } from './category-list';
+import { CategoryOption } from './category-list';
 
 @Component({
     selector: 'app-category-menu',
@@ -15,24 +15,24 @@ export class CategoryMenu {
     @ViewChild(MatMenu)
     readonly menu!: MatMenu;
     menuClosed = output<boolean>();
-    onEdit = output<CategoryNode | null>();
-    onDelete = output<CategoryNode | null>();
-    onAddCategory = output<CategoryNode | null>();
+    onEdit = output<CategoryOption | null>();
+    onDelete = output<CategoryOption | null>();
+    onAddCategory = output<CategoryOption | null>();
 
-    selectedItem = input<CategoryNode | null>(null);
-    editItem(item: InputSignal<CategoryNode | null>) {
+    selectedItem = input<CategoryOption | null>(null);
+    editItem(item: InputSignal<CategoryOption | null>) {
         // Implement the logic to edit the category with the given nodeId
         console.log('Edit category with ID:', item()?.id);
         this.onEdit.emit(item());
     }
 
-    deleteItem(item: InputSignal<CategoryNode | null>) {
+    deleteItem(item: InputSignal<CategoryOption | null>) {
         // Implement the logic to delete the category with the given nodeId
         console.log('Delete category with ID:', item()?.id);
         this.onDelete.emit(item());
     }
 
-    addCategory(item: InputSignal<CategoryNode | null>) {
+    addCategory(item: InputSignal<CategoryOption | null>) {
         // Implement the logic to add a subcategory to the category with the given nodeId
         console.log('Add subfolder to category with ID:', item()?.id);
         this.onAddCategory.emit(item());

@@ -2,7 +2,7 @@
   <!-- PANE 1: Gmail-Style Sidebar Drawer -->
    <aside
     [style.width]="isSidebarExpanded() ? '256px' : '80px'"
-    class="h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0">
+    class="relative h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out overflow-hidden flex-shrink-0">
 
     <!-- Sidebar Header / Brand -->
     <div class="flex h-16 items-center px-4 border-b border-slate-100 justify-between">
@@ -27,7 +27,9 @@
             [moduleId]="module.id"
             [isSidebarExpanded]="isSidebarExpanded()"
             (categorySelected)="handleCategorySelection($event)"
-            [categoryListData]="categoriesForModule().get(module.id) || []">
+            (toastMessage)="showCategoryToast($event)"
+            [categoryTreeData]="categoryTreeData()"
+            [categoryListData]="categoryListData()">
           </app-category-list>
           <a mat-list-item class="order-1 rounded-lg mb-1 bg-blue-50 text-blue-600">
             <mat-icon matListItemIcon class="text-blue-600">{{ module.icon }}</mat-icon>
@@ -41,6 +43,12 @@
           </div>
         }
       </mat-nav-list>
+    }
+    @if (categoryToast()) {
+      <div class="absolute bottom-4 left-2 right-2 z-50 rounded-lg border border-slate-200 bg-slate-900 px-3 py-2 text-xs font-medium text-white shadow-lg"
+        role="status" aria-live="polite">
+        {{ categoryToast() }}
+      </div>
     }
   </aside>
 

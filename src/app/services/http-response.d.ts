@@ -3,3 +3,8 @@ interface HttpListResponse {
     totalCount: number;
     data: any[];
 }
+
+interface HttpPostResponse {
+    status: number;
+    data: any;
+}
