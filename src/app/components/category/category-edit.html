@@ -21,11 +21,11 @@
     <div>
         <label  class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Parent</label>
     <mat-form-field class="w-full">
-        
+
         <mat-select formControlName="parent_id" placeholder="--Main Category--">
             <mat-option [value]="null">--Main Category--</mat-option>
-            @for (category of getCategoryListFlat(categoryForm.get('id')?.value); track category.id) {
-            <mat-option [value]="category.id" class="display-space">{{ category.name }}</mat-option>
+            @for (category of categories(); track category.id) {
+            <mat-option [value]="category.id" class="display-space">{{ category.nameIndented }}</mat-option>
             }
         </mat-select>
         <mat-hint align="end">Here's the dropdown arrow ^</mat-hint>

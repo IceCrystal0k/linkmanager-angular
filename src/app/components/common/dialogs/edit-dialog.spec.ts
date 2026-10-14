@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog';
 import { EditDialog } from './edit-dialog';
 
@@ -43,6 +44,20 @@ describe('EditDialog', () => {
         component.onSave();
 
         expect(close).toHaveBeenCalledWith('saved');
+    });
+
+    it('should display an API error when saving fails', async () => {
+        component.data.saveCallback = vi.fn().mockRejectedValue(
+            new HttpErrorResponse({ error: { errors: ['Category name already exists.'] } })
+        );
+
+        await component.onSave();
+        fixture.detectChanges();
+
+        expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
+            'Category name already exists.'
+        );
+        expect(close).not.toHaveBeenCalled();
     });
 
     it('should return false when cancelled', () => {

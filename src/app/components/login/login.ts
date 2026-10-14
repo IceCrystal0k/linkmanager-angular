@@ -20,7 +20,7 @@ export class Login {
     private authService = inject(AuthService); // Inject the service
 
     // Manage UI error messages with a simple signal
-    errorMessage = signal<string | null>(null);
+    errorMessage = signal<string | string[] |null>(null);
     socialLoginLoading = signal(false);
 
     // Strongly-typed reactive form group definition

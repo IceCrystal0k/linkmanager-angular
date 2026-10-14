@@ -1,4 +1,4 @@
-import { Component, signal, input, output, inject, ViewChild, effect } from '@angular/core';
+import { Component, signal, input, output, inject, ViewChild, effect, computed } from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,16 +8,17 @@ import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 import { CategoryEdit } from './category-edit';
 import { slugify } from '../../lib/string-util';
-import { getExpandedNodeIds, restoreExpandedNodes } from '../../lib/ui-util';
+import { restoreExpandedNodes } from '../../lib/ui-util';
 import { CategoryModel, CategoryService } from '../../services/category';
 
-export interface CategoryNode {
+export interface CategoryOption {
+    id: number;
     name: string;
-    id?: number;
+    module_id: number;
     parent_id?: number | null;
-    slug?: string;
-    module_id?: number;
-    children?: CategoryNode[];
+    children?: CategoryOption[];
+    parentIds?: number[];
+    nameIndented?: string; // Optional property for flattened tree representation
 }
 
 @Component({
@@ -32,36 +33,42 @@ export class CategoryList {
     private categoryService = inject(CategoryService);
     moduleId = input<number>(0);
 
-    @ViewChild('categoryTree') private categoryTree?: MatTree<CategoryNode>;
+    @ViewChild('categoryTreeRef') private categoryTreeRef?: MatTree<CategoryOption>;
 
     // Receive the sidebar expansion status from the parent dashboard
     isSidebarExpanded = input<boolean>(true);
 
     // Emit the selected node up to the dashboard component
-    categorySelected = output<CategoryNode>();
+    categorySelected = output<CategoryOption>();
+    toastMessage = output<string>();
 
-    selectedItem = signal<CategoryNode | null>(null);
+    selectedItem = signal<CategoryOption | null>(null);
 
     // Tree category structure
-    categoryListData = input<CategoryNode[]>([]);
+    categoryTreeData = input<CategoryOption[]>([]);
+    categoryListData = input<CategoryOption[]>([]);
+    categoryTree = computed(() => {
+        let tData = this.categoryTreeData().filter((category) => category.module_id === this.moduleId());
+        return tData;
+    });
     private expandedNodeIds = new Set<number>();
 
-    // Effect to restore expanded nodes when categoryListData changes
+    // Effect to restore expanded nodes when categoryTreeData changes
     private restoreExpansionOnDataChange = effect(() => {
-        this.categoryListData();
-        setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
+        this.categoryTreeData();
+        setTimeout(() => restoreExpandedNodes(this.categoryTreeData(), this.expandedNodeIds, this.categoryTreeRef));
     });
 
     // Material Tree Accessors
-    childrenAccessor = (node: CategoryNode) => node.children ?? [];
-    hasChild = (_: number, node: CategoryNode) => !!node.children && node.children.length > 0;
+    childrenAccessor = (node: CategoryOption) => node.children ?? [];
+    hasChild = (_: number, node: CategoryOption) => !!node.children && node.children.length > 0;
 
     hideCategoryActions() {
         // Remove 'active-menu' class from all buttons when the menu is closed
         document.querySelectorAll('app-category-list .active-menu').forEach((el) => el.classList.remove('active-menu'));
     }
 
-    showCategoryActions(node: CategoryNode, event: MouseEvent) {
+    showCategoryActions(node: CategoryOption, event: MouseEvent) {
         // Implement the logic to show category actions (e.g., edit, delete)
         this.selectedItem.set(node);
         this.hideCategoryActions();
@@ -70,8 +77,8 @@ export class CategoryList {
         console.log('Show actions for category:', node);
     }
 
-    getCategoryTree(): MatTree<CategoryNode> | undefined {
-        return this.categoryTree;
+    getCategoryTree(): MatTree<CategoryOption> | undefined {
+        return this.categoryTreeRef;
     }
 
     onCategoryMenuClosed() {
@@ -83,18 +90,28 @@ export class CategoryList {
         console.log('Menu closed from the category list component 2');
     }
 
-    toggleCategory(node: CategoryNode) {
+    toggleCategory(node: CategoryOption) {
         console.log('Toggling category:', node);
-        if (node.id && this.categoryTree?.isExpanded(node)) {
+        if (node.id && this.categoryTreeRef?.isExpanded(node)) {
             this.expandedNodeIds.delete(node.id);
         } else if (node.id) {
             this.expandedNodeIds.add(node.id);
         }
 
-        this.categoryTree?.toggle(node);
+        this.categoryTreeRef?.toggle(node);
     }
 
-    editCategory(item: CategoryNode | null) {
+    getCategoryListForDropdown(excludeId: number | null = null): CategoryOption[] {
+        const moduleCategories = this.categoryListData().filter((category) => {
+            const isSameModule = category.module_id === this.moduleId();
+            const isNotExcluded = excludeId ? category.id !== excludeId : true;
+            const isNotDescendant = category.parentIds && excludeId ? !category.parentIds.includes(excludeId) : true;
+            return isSameModule && isNotExcluded && isNotDescendant;
+        });
+        return moduleCategories;
+    }
+
+    editCategory(item: CategoryOption | null) {
         if (!item) {
             console.warn('No category selected for editing.');
             return;
@@ -111,7 +128,8 @@ export class CategoryList {
                 module_id: item.module_id ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? 0
+                moduleId: item?.module_id ?? this.moduleId() ?? 0,
+                categories: this.getCategoryListForDropdown(item.id) // Pass the flattened category list for dropdown
             },
             saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result),
             id: item.id
@@ -121,7 +139,7 @@ export class CategoryList {
         });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
-            if (result === false) {
+            if (result == null || result === false) {
                 console.log('Save cancelled for category:', item.id);
                 return;
             }
@@ -130,14 +148,18 @@ export class CategoryList {
                 result.children = item.children; // Preserve children if they exist
             }
             console.log('Save confirmed for category:', item.id, 'Result:', result);
-            // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
-            if (item?.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
+            if (
+                result.parent_id != null &&
+                item.parent_id !== result.parent_id &&
+                !this.expandedNodeIds.has(result.parent_id)
+            ) {
                 this.expandedNodeIds.add(result.parent_id);
             }
+            this.toastMessage.emit('Category updated successfully.');
         });
     }
 
-    deleteCategory(item: CategoryNode | null) {
+    deleteCategory(item: CategoryOption | null) {
         if (!item) {
             console.warn('No category selected for deletion.');
             return;
@@ -155,15 +177,16 @@ export class CategoryList {
 
         dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
             if (confirmed && item.id) {
-                const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
-                this.categoryService.deleteItem(item.id);
-                // .subscribe(() => {
-                //     console.log('Category deleted:', item?.id);
-                // });
-
-                // The service replaces ancestor objects while removing the node.
-                // Restore expansion after the tree has rendered those new objects.
-                // setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
+                this.categoryService.deleteItem(item.id).subscribe({
+                    next: () => {
+                        console.log('Category deleted:', item.id);
+                        this.toastMessage.emit('Category deleted successfully.');
+                    },
+                    error: (error: unknown) => {
+                        console.error('Failed to delete category', error);
+                        this.toastMessage.emit('Failed to delete category.');
+                    }
+                });
                 return;
             }
 
@@ -171,7 +194,7 @@ export class CategoryList {
         });
     }
 
-    addCategory(item: CategoryNode | null) {
+    addCategory(item: CategoryOption | null) {
         // Implement the logic to add a subfolder to the category with the given nodeId
         console.log('Add subfolder to category with ID:', item?.id);
         const dialogData = {
@@ -184,74 +207,64 @@ export class CategoryList {
                 module_id: item?.module_id ?? this.moduleId() ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? 0
+                moduleId: item?.module_id ?? this.moduleId() ?? 0,
+                categories: this.getCategoryListForDropdown() // Pass the flattened category list for dropdown
             },
             id: 0, // New category, so id is 0
-            saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result),
+            saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result)
         };
         const dialogRef = this.dialogService.openEdit(CategoryEdit, dialogData, {
             width: '400px'
         });
 
         dialogRef.afterClosed().subscribe((result: any | undefined) => {
-            if (result === false) {
+            if (result == null || result === false) {
                 console.log('Create cancelled for category');
                 return;
             }
 
             console.log('Create confirmed for category:', item?.name, 'Result:', result);
-            // const expandedNodeIds = getExpandedNodeIds(this.categoryListData(), this.categoryTree);
-            // If the parent node was not expanded before, expand it after adding the new category
             const expandId = item?.id ?? result.parent_id;
             if (expandId && !this.expandedNodeIds.has(expandId)) {
                 this.expandedNodeIds.add(expandId);
             }
+            this.toastMessage.emit('Category created successfully.');
         });
     }
 
     async saveHandler(id: number, data: CategoryModel): Promise<CategoryModel | false> {
-        if (id) {
-            this.categoryService.updateItem(id, data);
-            // this.categoryService.updateItem(result).subscribe({
-            //     next: (response) => {
-            //         // Success callback
-            //         console.log('Category updated successful!', response);
-            //         // close the dialog
-            //         // this.dialog.close();
-            //     },
-            //     error: (err) => {
-            //         // Error callback (handles 401, 500, network issues, etc.)
-            //         console.error('Failed to update category', err);
-            //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
-            //     }
-            // });
-
-            // The service replaces ancestor objects while removing the node.
-            // Restore expansion after the tree has rendered those new objects.
-            // setTimeout(() => restoreExpandedNodes(this.categoryListData(), this.expandedNodeIds, this.categoryTree));
-
-             return Promise.resolve(data); // Return a resolved promise to indicate success
-        }
-        else {
-            this.categoryService.createItem(data);
-            // this.categoryService.createItem(result).subscribe({
-            //     next: (response) => {
-            //         // Success callback
-            //         console.log('Category created successful!', response);
-            //         // close the dialog
-            //         // this.dialog.close();
-            //     },
-            //     error: (err) => {
-            //         // Error callback (handles 401, 500, network issues, etc.)
-            //         console.error('Failed to create category', err);
-            //         this.errorMessage.set(err.error?.errors?.join('<br/>') || 'Error saving category.');
-            //     }
-            // });
-            return Promise.resolve(data);
-        }
+        return new Promise<CategoryModel | false>((resolve, reject) => {
+            if (id) {
+                this.categoryService.updateItem(id, data).subscribe({
+                    next: (response) => {
+                        // Success callback
+                        console.log('Category updated successful!', response);
+                        resolve(response.data);
+                    },
+                    error: (err) => {
+                        // Error callback (handles 401, 500, network issues, etc.)
+                        console.error('Failed to update category', err);
+                        reject(err);
+                    }
+                });
+            } else {
+                this.categoryService.createItem(data).subscribe({
+                    next: (response: any) => {
+                        // Success callback
+                        console.log('Category created successful!', response);
+                        resolve(response.data);
+                    },
+                    error: (err) => {
+                        // Error callback (handles 401, 500, network issues, etc.)
+                        console.error('Failed to create category', err);
+                        reject(err);
+                    }
+                });
+            }
+        });
     }
 
-    onCategorySelect(node: CategoryNode, tree: MatTree<CategoryNode>, event: MouseEvent) {
+    onCategorySelect(node: CategoryOption, tree: MatTree<CategoryOption>, event: MouseEvent) {
         this.categorySelected.emit(node); // Notify parent component
         event.stopPropagation();
     }

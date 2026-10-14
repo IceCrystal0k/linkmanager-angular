@@ -2,12 +2,12 @@
 <div class="mt-2">
   <app-category-menu #categoryMenu [selectedItem]="selectedItem()"
   (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" ></app-category-menu>
-  <mat-tree #categoryTree [dataSource]="categoryListData()" [childrenAccessor]="childrenAccessor">
+  <mat-tree #categoryTreeRef [dataSource]="categoryTree()" [childrenAccessor]="childrenAccessor">
     <!-- Leaf Nodes -->
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="10"
       [class.!bg-blue-50]="node.isSelected" class="hover:!bg-teal-50">
       <span class="w-[40px]">&nbsp;</span>
-      <button matIconButton [disableRipple]="true" (click)="onCategorySelect(node, categoryTree, $event)"
+      <button matIconButton [disableRipple]="true" (click)="onCategorySelect(node, categoryTreeRef, $event)"
         class="flex-1 !justify-start !text-left !py-1 text-slate-600 hover:!bg-transparent bg-transparent !text-xs !font-medium flex items-center group">
         <mat-icon class="scale-75 text-slate-400 group-hover:text-blue-500 transition-colors">label</mat-icon>
         <span class="truncate">{{ node.name }}</span>
@@ -24,10 +24,10 @@
       <div class="flex flex-1">
         <button matIconButton [disableRipple]="true" (click)="toggleCategory(node)"
           class="!text-slate-400 hover:!text-blue-500 transition-colors">
-          <mat-icon class="scale-75 text-slate-400 hover:!text-black action-expand">{{categoryTree.isExpanded(node) ?
+          <mat-icon class="scale-75 text-slate-400 hover:!text-black action-expand">{{categoryTreeRef.isExpanded(node) ?
             'expand_more' : 'chevron_right'}}</mat-icon>
         </button>
-        <button (click)="onCategorySelect(node, categoryTree, $event)" matIconButton [disableRipple]="true"
+        <button (click)="onCategorySelect(node, categoryTreeRef, $event)" matIconButton [disableRipple]="true"
           class="flex-1 !justify-start !text-left !py-1 text-slate-700 hover:!bg-transparent bg-transparent !text-xs !font-semibold flex items-center group">
           <mat-icon class="scale-75 text-slate-400 group-hover:text-blue-500 transition-colors">folder</mat-icon>
           <span class="truncate">{{ node.name }}</span>

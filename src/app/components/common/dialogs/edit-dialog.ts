@@ -1,8 +1,20 @@
-import { AfterViewInit, Component, ComponentRef, OnDestroy, Type, ViewChild, ViewContainerRef, inject } from '@angular/core';
+import {
+    AfterViewInit,
+    Component,
+    ComponentRef,
+    OnDestroy,
+    Type,
+    ViewChild,
+    ViewContainerRef,
+    inject,
+    signal
+} from '@angular/core';
 import { AbstractControl } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogTitle, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { Subscription } from 'rxjs';
+import { getHttpErrormessage } from '../../../lib/http-util';
 
 export interface EditDialogContent<T = unknown> {
     form?: AbstractControl;
@@ -41,6 +53,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     private formStatusSubscription?: Subscription;
 
     isFormValid = true;
+    saveErrorMessage = signal<string | string[] | null>(null);
 
     readonly data = {
         title: 'Edit',
@@ -54,7 +67,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
 
         const editContent = this.contentComponent.instance as EditDialogContent;
         for (const [inputName, inputValue] of Object.entries(this.data.data ?? {})) {
-          this.contentComponent.setInput(inputName, inputValue);
+            this.contentComponent.setInput(inputName, inputValue);
         }
 
         if (editContent.form) {
@@ -78,7 +91,15 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     async onSave(): Promise<void> {
         const editContent = this.contentComponent?.instance as EditDialogContent;
         const savedData = editContent?.getSaveData?.();
-        const result = await this.data.saveCallback?.(this.data.id || 0, savedData);
+        let result = false;
+        this.saveErrorMessage.set(null);
+        try {
+            result = await this.data.saveCallback?.(this.data.id || 0, savedData);
+        } catch (error: unknown) {
+            console.error('Failed to save data', error);
+            this.saveErrorMessage.set(getHttpErrormessage(error, 'Unable to save. Please try again.'));
+            return;
+        }
         if (result !== false) {
             this.dialogRef.close(savedData ?? true);
         }
