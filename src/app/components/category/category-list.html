@@ -1,5 +1,5 @@
 @if (isSidebarExpanded()) {
-<div class="mt-2">
+<div>
   <app-category-menu #categoryMenu [selectedItem]="selectedItem()"
   (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" ></app-category-menu>
   <mat-tree #categoryTreeRef [dataSource]="categoryTree()" [childrenAccessor]="childrenAccessor">
