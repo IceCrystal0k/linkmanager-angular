@@ -13,7 +13,6 @@ export interface ModuleModel {
     order_index: number;
     description: string;
     enabled: boolean;
-    children?: CategoryModel[]; // Optional property for nested modules
 }
 
 @Injectable({

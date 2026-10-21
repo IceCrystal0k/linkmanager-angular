@@ -1,4 +1,21 @@
 :host ::ng-deep {
+
+
+    .module-title {
+      display: flex;
+      align-items: center;
+      height: 40px;
+      margin-bottom: 2px;
+      padding-right: 8px;
+      .module-icon {
+        margin-right: 8px;
+        margin-left: 8px;
+      }
+      .mat-mdc-icon-button {
+        margin-left: auto;
+      }
+    }
+
     .mat-tree {
         mat-tree-node {
             padding-left: 110px;
