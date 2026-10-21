@@ -1,8 +1,9 @@
-import { Component, signal, input, output, inject, ViewChild, effect, computed } from '@angular/core';
+import { Component, signal, input, output, inject, ViewChild, effect, computed, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatMenuModule } from '@angular/material/menu';
+import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
@@ -10,6 +11,7 @@ import { CategoryEdit } from './category-edit';
 import { slugify } from '../../lib/string-util';
 import { restoreExpandedNodes } from '../../lib/ui-util';
 import { CategoryModel, CategoryService } from '../../services/category';
+import { ModuleModel } from '../../services/module';
 
 export interface CategoryOption {
     id: number;
@@ -21,47 +23,129 @@ export interface CategoryOption {
     nameIndented?: string; // Optional property for flattened tree representation
 }
 
+interface CategoryNamePart {
+    text: string;
+    highlighted: boolean;
+}
+
 @Component({
     selector: 'app-category-list',
     standalone: true,
-    imports: [MatTreeModule, MatButtonModule, MatIconModule, MatMenuModule, CategoryMenu],
+    imports: [MatTreeModule, MatButtonModule, MatIconModule, MatMenuModule, CategoryMenu, MatTooltipModule],
     templateUrl: './category-list.html',
     styleUrl: './category-list.scss'
 })
 export class CategoryList {
     private dialogService = inject(UiDialogService); // Inject the service
     private categoryService = inject(CategoryService);
-    moduleId = input<number>(0);
+    private injector = inject(Injector);
+    module = input<ModuleModel | null>(null);
+    tooltipPosition = 'above' as TooltipPosition;
 
     @ViewChild('categoryTreeRef') private categoryTreeRef?: MatTree<CategoryOption>;
+    @ViewChild('filterInputEl') private filterInput?: ElementRef<HTMLInputElement>;
 
     // Receive the sidebar expansion status from the parent dashboard
     isSidebarExpanded = input<boolean>(true);
+    selectedCategoryId = input<number | null>(null);
 
     // Emit the selected node up to the dashboard component
     categorySelected = output<CategoryOption>();
+    categoryDeselected = output<number>();
     toastMessage = output<string>();
 
     selectedItem = signal<CategoryOption | null>(null);
+    isFilterInputVisible = signal<boolean>(false);
+    filterText = signal<string>('');
 
     // Tree category structure
     categoryTreeData = input<CategoryOption[]>([]);
     categoryListData = input<CategoryOption[]>([]);
     categoryTree = computed(() => {
-        let tData = this.categoryTreeData().filter((category) => category.module_id === this.moduleId());
-        return tData;
+        const moduleCategories = this.categoryTreeData().filter((category) => category.module_id === this.module()?.id);
+        const query = this.filterText().trim();
+
+        if (query.length < 2) {
+            return moduleCategories;
+        }
+
+        return moduleCategories
+            .map((category) => this.filterCategory(category, query))
+            .filter((category): category is CategoryOption => category !== null);
     });
     private expandedNodeIds = new Set<number>();
 
-    // Effect to restore expanded nodes when categoryTreeData changes
     private restoreExpansionOnDataChange = effect(() => {
-        this.categoryTreeData();
-        setTimeout(() => restoreExpandedNodes(this.categoryTreeData(), this.expandedNodeIds, this.categoryTreeRef));
+        const treeData = this.categoryTree();
+        const isFiltering = this.filterText().trim().length >= 2;
+
+        afterNextRender(() => {
+            const tree = this.categoryTreeRef;
+            if (!tree) {
+                return;
+            }
+
+            if (isFiltering) {
+                this.expandFilteredAncestors(treeData, tree);
+            } else {
+                restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
+            }
+        }, { injector: this.injector });
     });
 
     // Material Tree Accessors
     childrenAccessor = (node: CategoryOption) => node.children ?? [];
     hasChild = (_: number, node: CategoryOption) => !!node.children && node.children.length > 0;
+
+    private filterCategory(category: CategoryOption, query: string): CategoryOption | null {
+        const children = (category.children ?? [])
+            .map((child) => this.filterCategory(child, query))
+            .filter((child): child is CategoryOption => child !== null);
+        const matches = category.name.toLocaleLowerCase().includes(query.toLocaleLowerCase());
+
+        if (!matches && children.length === 0) {
+            return null;
+        }
+
+        return { ...category, children };
+    }
+
+    private expandFilteredAncestors(nodes: CategoryOption[], tree: MatTree<CategoryOption>): void {
+        for (const node of nodes) {
+            if (node.children?.length) {
+                tree.expand(node);
+                this.expandFilteredAncestors(node.children, tree);
+            }
+        }
+    }
+
+    getCategoryNameParts(name: string): CategoryNamePart[] {
+        const query = this.filterText().trim();
+        if (query.length < 2) {
+            return [{ text: name, highlighted: false }];
+        }
+
+        const parts: CategoryNamePart[] = [];
+        const lowerName = name.toLocaleLowerCase();
+        const lowerQuery = query.toLocaleLowerCase();
+        let lastIndex = 0;
+        let matchIndex = lowerName.indexOf(lowerQuery);
+
+        while (matchIndex !== -1) {
+            if (matchIndex > lastIndex) {
+                parts.push({ text: name.slice(lastIndex, matchIndex), highlighted: false });
+            }
+            parts.push({ text: name.slice(matchIndex, matchIndex + query.length), highlighted: true });
+            lastIndex = matchIndex + query.length;
+            matchIndex = lowerName.indexOf(lowerQuery, lastIndex);
+        }
+
+        if (lastIndex < name.length) {
+            parts.push({ text: name.slice(lastIndex), highlighted: false });
+        }
+
+        return parts;
+    }
 
     hideCategoryActions() {
         // Remove 'active-menu' class from all buttons when the menu is closed
@@ -103,7 +187,7 @@ export class CategoryList {
 
     getCategoryListForDropdown(excludeId: number | null = null): CategoryOption[] {
         const moduleCategories = this.categoryListData().filter((category) => {
-            const isSameModule = category.module_id === this.moduleId();
+            const isSameModule = category.module_id === this.module()?.id;
             const isNotExcluded = excludeId ? category.id !== excludeId : true;
             const isNotDescendant = category.parentIds && excludeId ? !category.parentIds.includes(excludeId) : true;
             return isSameModule && isNotExcluded && isNotDescendant;
@@ -128,7 +212,7 @@ export class CategoryList {
                 module_id: item.module_id ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? 0,
+                moduleId: item?.module_id ?? this.module()?.id ?? 0,
                 categories: this.getCategoryListForDropdown(item.id) // Pass the flattened category list for dropdown
             },
             saveCallback: (id: number, result: CategoryModel) => this.saveHandler(id, result),
@@ -181,6 +265,7 @@ export class CategoryList {
                     next: () => {
                         console.log('Category deleted:', item.id);
                         this.toastMessage.emit('Category deleted successfully.');
+                        this.categoryDeselected.emit(item.id);
                     },
                     error: (error: unknown) => {
                         console.error('Failed to delete category', error);
@@ -194,9 +279,10 @@ export class CategoryList {
         });
     }
 
-    addCategory(item: CategoryOption | null) {
+    addCategory(item: CategoryOption | null, event?: MouseEvent) {
         // Implement the logic to add a subfolder to the category with the given nodeId
         console.log('Add subfolder to category with ID:', item?.id);
+        event?.stopPropagation(); // Prevent the click from propagating to the parent
         const dialogData = {
             title: 'Create category',
             componentInputs: {
@@ -204,10 +290,10 @@ export class CategoryList {
                 parent_id: item?.id ?? '',
                 slug: '',
                 id: 0,
-                module_id: item?.module_id ?? this.moduleId() ?? 0
+                module_id: item?.module_id ?? this.module()?.id ?? 0
             },
             data: {
-                moduleId: item?.module_id ?? this.moduleId() ?? 0,
+                moduleId: item?.module_id ?? this.module()?.id ?? 0,
                 categories: this.getCategoryListForDropdown() // Pass the flattened category list for dropdown
             },
             id: 0, // New category, so id is 0
@@ -267,5 +353,24 @@ export class CategoryList {
     onCategorySelect(node: CategoryOption, tree: MatTree<CategoryOption>, event: MouseEvent) {
         this.categorySelected.emit(node); // Notify parent component
         event.stopPropagation();
+    }
+
+    showFilterInput() {
+      if (!this.isFilterInputVisible()) {
+        this.isFilterInputVisible.set(true);
+        afterNextRender(() => this.filterInput?.nativeElement.focus(), {
+          injector: this.injector
+        });
+      }
+    }
+
+    clearFilter(event?: MouseEvent) {
+      event?.stopPropagation(); // Prevent the click from propagating to the parent
+      this.filterText.set('');
+      this.isFilterInputVisible.set(false);
+    }
+
+    onFilterTextChange(event: Event): void {
+        this.filterText.set((event.target as HTMLInputElement).value);
     }
 }

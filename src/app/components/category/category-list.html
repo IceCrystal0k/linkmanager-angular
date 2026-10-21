@@ -1,26 +1,58 @@
-@if (isSidebarExpanded()) {
 <div>
   <app-category-menu #categoryMenu [selectedItem]="selectedItem()"
   (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" ></app-category-menu>
+
+  <div class="module-title rounded-lg bg-tree-module-bg text-tree-title" (click)="showFilterInput()">
+    <mat-icon matListItemIcon class="module-icon">{{ module()?.icon }}</mat-icon>
+    @if (isSidebarExpanded()) {
+      @if (isFilterInputVisible()) {
+      <input #filterInputEl type="text" placeholder="Filter categories..."
+        [value]="filterText()" (input)="onFilterTextChange($event)"
+        class="w-full pl-2 pr-4 py-1 text-sm bg-slate-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400" />
+      <button matIconButton (click)="clearFilter($event)">
+        <mat-icon class="text-base">close</mat-icon>
+      </button>
+      } @else {
+      <span class="text-base font-medium" matTooltip="Click to filter" [matTooltipPosition]="tooltipPosition">{{ module()?.name }}</span>
+      <button matIconButton (click)="addCategory(null, $event)" class="action-icons ml-auto"
+        matTooltip="Add Category" [matTooltipPosition]="tooltipPosition">
+        <mat-icon class="text-slate-500">add_circle_outline</mat-icon>
+      </button>
+    }
+    }
+  </div>
+@if (isSidebarExpanded()) {
   <mat-tree #categoryTreeRef [dataSource]="categoryTree()" [childrenAccessor]="childrenAccessor">
     <!-- Leaf Nodes -->
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="10"
-      [class.!bg-blue-50]="node.isSelected" class="hover:!bg-teal-50">
+      [class.bg-tree-selected]="node.id === selectedCategoryId()"
+      [class.shadow-selected-border]="node.id === selectedCategoryId()"
+      class="hover:!bg-tree-hover shadow-item-border">
       <span class="w-[40px]">&nbsp;</span>
       <button matIconButton [disableRipple]="true" (click)="onCategorySelect(node, categoryTreeRef, $event)"
         class="flex-1 !justify-start !text-left !py-1 text-slate-600 hover:!bg-transparent bg-transparent !text-xs !font-medium flex items-center group">
-        <mat-icon class="scale-75 text-slate-400 group-hover:text-blue-500 transition-colors">label</mat-icon>
-        <span class="truncate">{{ node.name }}</span>
+        <mat-icon class="scale-75 text-slate-400 group-hover:text-tree-icon-hover transition-colors">label</mat-icon>
+        <span class="truncate">
+          @for (part of getCategoryNameParts(node.name); track $index) {
+            @if (part.highlighted) {
+              <span class="text-blue-600 font-semibold">{{ part.text }}</span>
+            } @else {
+              <span>{{ part.text }}</span>
+            }
+          }
+        </span>
       </button>
       <button matIconButton [matMenuTriggerFor]="categoryMenu.menu" (click)="showCategoryActions(node, $event)"
-        class="action-icons ml-auto hover-show">
-        <mat-icon class="scale-75 text-slate-400">more_vert</mat-icon>
+        class="action-icons ml-auto hover-show hover:bg-tree-action-hover">
+        <mat-icon class="scale-75 text-slate-500">more_vert</mat-icon>
       </button>
     </mat-tree-node>
 
     <!-- Expandable Nodes -->
     <mat-tree-node *matTreeNodeDef="let node; when: hasChild" matTreeNodePadding matTreeNodePaddingIndent="10"
-      [class.!bg-blue-50]="node.isSelected" class="hover:!bg-teal-50">
+      [class.bg-tree-module-bg]="node.id === selectedCategoryId()"
+      [class.shadow-selected-border]="node.id === selectedCategoryId()"
+      class="hover:!bg-tree-hover shadow-item-border">
       <div class="flex flex-1">
         <button matIconButton [disableRipple]="true" (click)="toggleCategory(node)"
           class="!text-slate-400 hover:!text-blue-500 transition-colors">
@@ -29,16 +61,24 @@
         </button>
         <button (click)="onCategorySelect(node, categoryTreeRef, $event)" matIconButton [disableRipple]="true"
           class="flex-1 !justify-start !text-left !py-1 text-slate-700 hover:!bg-transparent bg-transparent !text-xs !font-semibold flex items-center group">
-          <mat-icon class="scale-75 text-slate-400 group-hover:text-blue-500 transition-colors">folder</mat-icon>
-          <span class="truncate">{{ node.name }}</span>
+          <mat-icon class="scale-75 text-slate-400 group-hover:text-tree-icon-hover transition-colors">folder</mat-icon>
+          <span class="truncate">
+            @for (part of getCategoryNameParts(node.name); track $index) {
+              @if (part.highlighted) {
+                <span class="text-blue-600 font-semibold">{{ part.text }}</span>
+              } @else {
+                <span>{{ part.text }}</span>
+              }
+            }
+          </span>
         </button>
         <button matIconButton [matMenuTriggerFor]="categoryMenu.menu" (click)="showCategoryActions(node, $event)"
-          class="action-icons ml-auto hover-show">
-          <mat-icon class="scale-75 text-slate-400">more_vert</mat-icon>
+          class="action-icons ml-auto hover-show hover:bg-tree-action-hover">
+          <mat-icon class="scale-75 text-slate-500">more_vert</mat-icon>
         </button>
       </div>
     </mat-tree-node>
 
   </mat-tree>
-</div>
 }
+</div>

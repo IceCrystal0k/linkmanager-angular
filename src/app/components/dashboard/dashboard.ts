@@ -6,9 +6,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
-import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../services/auth';
-import { CategoryList } from '../category/category-list';
+import { CategoryList, CategoryOption } from '../category/category-list';
 import { SkeletonLoader } from '../common/skeleton-loader';
 import { SpinnerLoader } from '../common/spinner-loader';
 
@@ -24,7 +23,6 @@ import { buildTree, flattenTree } from '../../lib/array-util';
         MatButtonModule,
         MatIconModule,
         CategoryList,
-        MatTooltipModule,
         SkeletonLoader,
         SpinnerLoader
     ],
@@ -41,11 +39,9 @@ export class Dashboard implements OnInit, OnDestroy {
     private linkService = inject(LinkService);
     private categoryService = inject(CategoryService);
     private moduleService = inject(ModuleService);
-    private selectedCategory: any = null;
+    selectedCategory = signal<CategoryOption | null>(null);
     private categoriesLoading = false;
     private modulesLoading = false;
-
-    tooltipPosition = 'above' as TooltipPosition;
 
     icon1 = signal('link');
     icon2 = signal('folder');
@@ -159,15 +155,26 @@ export class Dashboard implements OnInit, OnDestroy {
         this.router.navigate(['/login']);
     }
 
-    handleCategorySelection(category: any) {
+    handleCategorySelection(category: CategoryOption) {
         console.log('Clicked category captured from child tree component:', category);
+        this.selectedCategory.set(category);
+        // We can now use this category name to pass into our upcoming RxJS search filter!
+    }
 
-        if (this.selectedCategory && this.selectedCategory.id !== category.id) {
-            this.selectedCategory.isSelected = false;
-            console.log('Previous selected category', this.selectedCategory);
+    /**
+     * Handles the deselection of a category.
+     * @param categoryId category id
+     */
+    handleCategoryDeselection(categoryId: number) {
+        console.log('Clicked category captured from child tree component:', categoryId);
+        const selectedCategory = this.selectedCategory();
+        // Deselect the category if it matches the currently selected category or its parent
+        if (selectedCategory && (
+            selectedCategory.id === categoryId ||
+            selectedCategory.parentIds?.includes(categoryId)
+        )) {
+            this.selectedCategory.set(null);
         }
-        this.selectedCategory = category;
-        this.selectedCategory.isSelected = true;
         // We can now use this category name to pass into our upcoming RxJS search filter!
     }
 }

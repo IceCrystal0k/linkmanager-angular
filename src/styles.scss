@@ -13,6 +13,19 @@
   --color-gmail-blue: #1a73e8;
   --color-gmail-gray: #f1f3f4;
   --color-mat-primary: #3f51b5; // Maps the Material Indigo to Tailwind!
+  --color-tree-bg: #FAF9FD;
+  --color-tree-module-bg: #F1EFF7;
+  --color-tree-title: #5f5371;
+  --color-tree-label: #4B4158;
+  --color-tree-icon: #90A1B9;
+  --color-tree-hover: #F3F0F8;
+  --color-tree-selected: #E5DFF0;
+  --color-tree-icon-hover: #5C6B82;
+  --color-tree-action-hover: #E2E5F0;
+
+
+  --shadow-selected-border: inset 2px 0 0 0 #90A1B9;
+  --shadow-item-border: inset 0 1px 0 0 #F1F2F3;
 }
 
 html {

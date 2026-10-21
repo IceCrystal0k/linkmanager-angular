@@ -39,45 +39,45 @@ This roadmap breaks the remaining work into small, independently verifiable task
 
 ### 2.1 Connect category fetch to the database
 
-- [ ] Replace the static category load in the dashboard with `CategoryService.fetchItems()`.
-- [ ] Verify the configured category endpoint and normalize the API response into the tree shape.
-- [ ] Preserve the selected category and expanded nodes when refreshed data arrives where possible.
-- [ ] Add fetch success, loading, empty, and error states to the category view.
+- [x] Replace the static category load in the dashboard with `CategoryService.fetchItems()`.
+- [x] Verify the configured category endpoint and normalize the API response into the tree shape.
+- [x] Preserve the selected category and expanded nodes when refreshed data arrives where possible.
+- [x] Add fetch success, loading, empty, and error states to the category view.
 - [ ] Add service and dashboard tests for the database-backed fetch.
 
 ### 2.2 Connect category creation
 
-- [ ] Submit the category edit form to `CategoryService.createItem()`.
-- [ ] Send the selected module and parent category IDs with the request.
-- [ ] Add the created category to the correct root or parent node using the API response.
-- [ ] Close the dialog only after a successful response and display validation errors in the dialog.
+- [x] Submit the category edit form to `CategoryService.createItem()`.
+- [x] Send the selected module and parent category IDs with the request.
+- [x] Add the created category to the correct root or parent node using the API response.
+- [x] Close the dialog only after a successful response and display validation errors in the dialog.
 - [ ] Add tests for root creation, child creation, failed creation, and cancelled creation.
 
 ### 2.3 Connect category updates
 
-- [ ] Submit edits to `CategoryService.updateItem()` and use the returned category as the source of truth.
-- [ ] Support moving a category to a different parent without losing its children.
-- [ ] Preserve tree expansion and selection after a successful move or rename.
-- [ ] Prevent duplicate submissions while an update is in progress.
+- [x] Submit edits to `CategoryService.updateItem()` and use the returned category as the source of truth.
+- [x] Support moving a category to a different parent without losing its children.
+- [x] Preserve tree expansion and selection after a successful move or rename.
+- [x] Prevent duplicate submissions while an update is in progress.
 - [ ] Add tests for rename, parent change, failed update, and stale/missing category IDs.
 
 ### 2.4 Connect category deletion
 
-- [ ] Call `CategoryService.deleteItem()` only after confirmation.
-- [ ] Send the API request before removing the category from the signal, or restore state if the request fails.
-- [ ] Refresh or update the tree after recursive deletion according to the API contract.
-- [ ] Clear the selected category when it or one of its ancestors is deleted.
+- [x] Call `CategoryService.deleteItem()` only after confirmation.
+- [x] Send the API request before removing the category from the signal, or restore state if the request fails.
+- [x] Refresh or update the tree after recursive deletion according to the API contract.
+- [x] Clear the selected category when it or one of its ancestors is deleted.
 - [ ] Add tests for confirmed deletion, cancelled deletion, failed deletion, and recursive descendants.
 
 ### 2.5 Filter categories by module name
 
-- [ ] Make the module name in the category header clickable.
-- [ ] Replace the module name with a focused text input while editing.
-- [ ] Add an explicit way to commit and cancel the module filter, including Escape and blur behavior.
-- [ ] Keep the input value separate from the committed filter value while the user is typing.
-- [ ] Filter category trees by category name within the selected module without mutating service data.
-- [ ] Decide whether matching a descendant keeps its ancestor path visible and implement that behavior.
-- [ ] Add a clear-filter action and an empty-results state.
+- [x] Make the module name in the category header clickable.
+- [x] Replace the module name with a focused text input while editing.
+- [x] Add an explicit way to commit and cancel the module filter, including Escape and blur behavior.
+- [x] Keep the input value separate from the committed filter value while the user is typing.
+- [x] Filter category trees by category name within the selected module without mutating service data.
+- [x] Decide whether matching a descendant keeps its ancestor path visible and implement that behavior.
+- [x] Add a clear-filter action and an empty-results state.
 - [ ] Add component tests for enter, cancel, clear, case-insensitive matching, and ancestor visibility.
 
 ## Phase 3: Build the link editing workflow
