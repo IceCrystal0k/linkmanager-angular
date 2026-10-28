@@ -20,11 +20,15 @@
     <mat-nav-list class="p-2">
       @for (module of modules(); track module.id) {
       <app-category-list #categoryList class="block" [class.mt-2]="$index > 0" [module]="module"
-          [isSidebarExpanded]="isSidebarExpanded()" (categorySelected)="handleCategorySelection($event)"
-          (categoryDeselected)="handleCategoryDeselection($event)"
-          (toastMessage)="showCategoryToast($event)" [categoryTreeData]="categoryTreeData()"
-          [categoryListData]="categoryListData()" [selectedCategoryId]="selectedCategory()?.id ?? null">
-        </app-category-list>
+        [isSidebarExpanded]="isSidebarExpanded()"
+        (categorySelected)="handleCategorySelection($event)"
+        (categoryDeselected)="handleCategoryDeselection($event)"
+        (toastMessage)="showCategoryToast($event)"
+        [categoryTreeData]="categoryTreeData()"
+        [categoryListData]="categoryListData()"
+        [selectedCategoryId]="selectedCategory()?.id ?? null"
+        (linkUpdated)="updateLinkList($event)">
+      </app-category-list>
       }
     </mat-nav-list>
     }
@@ -40,6 +44,7 @@
   <!-- MAIN CANVAS CONTROLLER -->
   <main class="flex-1 flex h-full overflow-hidden min-w-0">
 
+
     <!-- PANE 2: Master List (The Gmail "Inbox" View) -->
     <div class="w-96 flex flex-col h-full bg-white border-r border-slate-200">
       <!-- Search Top Bar Wrapper -->
@@ -50,24 +55,35 @@
             class="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400" />
         </div>
       </div>
-
-      <!-- Scrollable Data Items Row -->
-      @if (isLinksLoading()) {
-      <app-skeleton-loader [loading]="isLinksLoading()" />
-      } @else {
-      <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
-        @for (item of links(); track item.id) {
-        <div (click)="selectLink(item)" [class.bg-blue-50/60]="selectedLink()?.id === item.id"
-          class="p-4 hover:bg-slate-50 cursor-pointer transition-colors relative group">
-          <div class="flex justify-between items-start mb-1">
-            <h3 class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{{ item.name }}
-            </h3>
-            <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{ item.category.name
-              }}</span>
+      @if (selectedCategory()) {
+      <div>
+        <!-- Scrollable Data Items Row -->
+        @if (isLinksLoading()) {
+        <app-skeleton-loader [loading]="isLinksLoading()" />
+        } @else {
+        <div class="flex-1 overflow-y-auto divide-y divide-slate-100">
+          @for (item of links(); track item.id) {
+          <div (click)="selectLink(item)" [class.bg-blue-50]="selectedLink()?.id === item.id"
+            class="p-4 hover:bg-slate-50 cursor-pointer transition-colors relative group">
+            <div class="flex justify-between items-start mb-1">
+              <h3 class="font-semibold text-slate-800 text-sm group-hover:text-blue-600 transition-colors">{{ item.name
+                }}
+              </h3>
+              <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{
+                item.category.name
+                }}</span>
+            </div>
+            <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
           </div>
-          <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
+          }
         </div>
         }
+      </div>
+      } @else {
+      <!-- Empty Landing State Placeholder -->
+      <div class="flex-1 flex flex-col items-center justify-center text-slate-400">
+        <mat-icon class="scale-[2] mb-4 opacity-40 text-slate-500">wysiwyg</mat-icon>
+        <p class="text-sm font-medium">Select an item from the category tree to see details</p>
       </div>
       }
     </div>
@@ -78,7 +94,11 @@
       <!-- Detail Header -->
       <div class="h-16 px-6 bg-white border-b border-slate-200 flex items-center justify-between">
         <h2 class="text-lg font-bold text-slate-800">{{ selectedLink().name }}</h2>
-        <span class="text-xs text-slate-400">ID: #00{{ selectedLink().id }}</span>
+        <button matButton="text" (click)="onSignOut()"
+          class="rounded-lg justify-start mt-4 hover:!bg-slate-100 !text-slate-600">
+          <mat-icon class="ml-[1px] text-[24px] w-[24px] h-[24px] text-blue-60">logout</mat-icon> @if
+          (isSidebarExpanded()) { <span>Sign Out</span> }
+        </button>
       </div>
 
       <!-- Detail Content Sheet -->
@@ -95,14 +115,14 @@
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Description Note</label>
-            <p class="text-slate-600 text-sm leading-relaxed">{{ selectedLink().desc }}</p>
+            <p class="text-slate-600 text-sm leading-relaxed">{{ selectedLink().comment }}</p>
           </div>
 
           <div class="pt-4 border-t border-slate-100 flex gap-3">
-            <button mat-flat-button color="primary" class="rounded-lg">
+            <button mat-flat-button color="primary" class="rounded-lg" (click)="onLinkEdit()">
               <mat-icon class="scale-90">edit</mat-icon> Edit Entry
             </button>
-            <button mat-stroked-button class="rounded-lg !text-rose-600 !border-rose-200 hover:!bg-rose-50">
+            <button mat-stroked-button class="rounded-lg !text-rose-600 !border-rose-200 hover:!bg-rose-50" (click)="onLinkDelete()">
               <mat-icon class="scale-90">delete</mat-icon> Purge
             </button>
           </div>
@@ -115,14 +135,6 @@
         <p class="text-sm font-medium">Select an item from the column to see details</p>
       </div>
       }
-      <div class="flex justify-end">
-        <button matButton="text" (click)="onSignOut()"
-          class="rounded-lg justify-start mt-4 hover:!bg-slate-100 !text-slate-600">
-          <mat-icon class="ml-[1px] text-[24px] w-[24px] h-[24px] text-blue-60">logout</mat-icon> @if
-          (isSidebarExpanded()) { <span>Sign Out</span> }
-        </button>
-      </div>
     </div>
-
   </main>
 </div>

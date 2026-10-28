@@ -1,4 +1,16 @@
-import { Component, signal, input, output, inject, ViewChild, effect, computed, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+    Component,
+    signal,
+    input,
+    output,
+    inject,
+    ViewChild,
+    effect,
+    computed,
+    ElementRef,
+    Injector,
+    afterNextRender
+} from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -8,10 +20,13 @@ import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 import { CategoryEdit } from './category-edit';
+import { LinkEdit } from './link-edit';
 import { slugify } from '../../lib/string-util';
 import { restoreExpandedNodes } from '../../lib/ui-util';
 import { CategoryModel, CategoryService } from '../../services/category';
 import { ModuleModel } from '../../services/module';
+import { LinkModel, LinkService } from '../../services/link';
+import { firstValueFrom } from 'rxjs';
 
 export interface CategoryOption {
     id: number;
@@ -28,6 +43,11 @@ interface CategoryNamePart {
     highlighted: boolean;
 }
 
+export interface LinkUpdatedEvent {
+    link: LinkModel;
+    action: 'add' | 'update' | 'delete';
+}
+
 @Component({
     selector: 'app-category-list',
     standalone: true,
@@ -38,6 +58,7 @@ interface CategoryNamePart {
 export class CategoryList {
     private dialogService = inject(UiDialogService); // Inject the service
     private categoryService = inject(CategoryService);
+    private linkService = inject(LinkService);
     private injector = inject(Injector);
     module = input<ModuleModel | null>(null);
     tooltipPosition = 'above' as TooltipPosition;
@@ -53,6 +74,7 @@ export class CategoryList {
     categorySelected = output<CategoryOption>();
     categoryDeselected = output<number>();
     toastMessage = output<string>();
+    linkUpdated = output<LinkUpdatedEvent>();
 
     selectedItem = signal<CategoryOption | null>(null);
     isFilterInputVisible = signal<boolean>(false);
@@ -79,18 +101,21 @@ export class CategoryList {
         const treeData = this.categoryTree();
         const isFiltering = this.filterText().trim().length >= 2;
 
-        afterNextRender(() => {
-            const tree = this.categoryTreeRef;
-            if (!tree) {
-                return;
-            }
+        afterNextRender(
+            () => {
+                const tree = this.categoryTreeRef;
+                if (!tree) {
+                    return;
+                }
 
-            if (isFiltering) {
-                this.expandFilteredAncestors(treeData, tree);
-            } else {
-                restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
-            }
-        }, { injector: this.injector });
+                if (isFiltering) {
+                    this.expandFilteredAncestors(treeData, tree);
+                } else {
+                    restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
+                }
+            },
+            { injector: this.injector }
+        );
     });
 
     // Material Tree Accessors
@@ -232,11 +257,7 @@ export class CategoryList {
                 result.children = item.children; // Preserve children if they exist
             }
             console.log('Save confirmed for category:', item.id, 'Result:', result);
-            if (
-                result.parent_id != null &&
-                item.parent_id !== result.parent_id &&
-                !this.expandedNodeIds.has(result.parent_id)
-            ) {
+            if (result.parent_id != null && item.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
                 this.expandedNodeIds.add(result.parent_id);
             }
             this.toastMessage.emit('Category updated successfully.');
@@ -350,24 +371,76 @@ export class CategoryList {
         });
     }
 
+    addLink(item: CategoryOption | null) {
+        if (!item) {
+            console.warn('No category selected for creating a link.');
+            return;
+        }
+
+        const dialogRef = this.dialogService.openEdit(
+            LinkEdit,
+            {
+                title: 'Add link',
+                componentInputs: {
+                    name: '',
+                    url: '',
+                    category_id: item.id,
+                    description: '',
+                    comment: ''
+                },
+                data: {
+                    categories: this.getCategoryListForDropdown()
+                },
+                id: 0,
+                saveCallback: (id: number, result: Partial<LinkModel> | false) => this.saveLinkHandler(id, result, 'add')
+            },
+            { width: '480px' }
+        );
+
+        dialogRef.afterClosed().subscribe((result: Partial<LinkModel> | false | undefined) => {
+            if (result == null || result === false) {
+                return;
+            }
+            this.toastMessage.emit('Link created successfully.');
+        });
+    }
+
+    private async saveLinkHandler(
+        _id: number,
+        data: Partial<LinkModel> | false,
+        action: 'add' | 'update' | 'delete'
+    ): Promise<LinkModel | false> {
+        if (data === false) {
+            return false;
+        }
+
+        const response = await firstValueFrom(this.linkService.createItem(data));
+        const linkUpdatedEvent: LinkUpdatedEvent = {
+            link: response.data,
+            action: action
+        };
+        this.linkUpdated.emit(linkUpdatedEvent);
+        return response.data;
+    }
+
     onCategorySelect(node: CategoryOption, tree: MatTree<CategoryOption>, event: MouseEvent) {
         this.categorySelected.emit(node); // Notify parent component
         event.stopPropagation();
     }
 
     showFilterInput() {
-      if (!this.isFilterInputVisible()) {
-        this.isFilterInputVisible.set(true);
-        afterNextRender(() => this.filterInput?.nativeElement.focus(), {
-          injector: this.injector
-        });
-      }
+        if (!this.isFilterInputVisible()) {
+            this.isFilterInputVisible.set(true);
+            afterNextRender(() => this.filterInput?.nativeElement.focus(), {
+                injector: this.injector
+            });
+        }
     }
 
     clearFilter(event?: MouseEvent) {
-      event?.stopPropagation(); // Prevent the click from propagating to the parent
-      this.filterText.set('');
-      this.isFilterInputVisible.set(false);
+        event?.stopPropagation(); // Prevent the click from propagating to the parent
+        this.filterText.set('');
+        this.isFilterInputVisible.set(false);
     }
 
     onFilterTextChange(event: Event): void {

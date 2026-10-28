@@ -1,6 +1,6 @@
 <div>
   <app-category-menu #categoryMenu [selectedItem]="selectedItem()"
-  (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" ></app-category-menu>
+  (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" (onAddLink)="addLink($event)"></app-category-menu>
 
   <div class="module-title rounded-lg bg-tree-module-bg text-tree-title" (click)="showFilterInput()">
     <mat-icon matListItemIcon class="module-icon">{{ module()?.icon }}</mat-icon>

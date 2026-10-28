@@ -3,6 +3,11 @@ import { HttpClient } from '@angular/common/http';
 import { Observable, tap } from 'rxjs';
 import ServiceConfig from '../services/service.config';
 
+interface LinkMutationResponse {
+    status: number;
+    data: LinkModel;
+}
+
 // Define a strict TypeScript interface for your Link data structure
 export interface LinkModel {
     id: number;
@@ -10,7 +15,7 @@ export interface LinkModel {
     url: string;
     category_id: number;
     category: { id: number; name: string };
-    short_description: string;
+    comment: string;
     description: string;
     username?: string;
     password?: string;
@@ -31,38 +36,44 @@ export class LinkService {
     readonly links = this.linksSignal.asReadonly();
 
     // 1. GET: Fetch all links from the API and update the signal
-    fetchItems(): Observable<HttpListResponse> {
-        return this.http.get<HttpListResponse>(`${this.apiUrl}links`).pipe(
+    fetchItems(queryParams: any): Observable<HttpListResponse> {
+        const url = new URL(`${this.apiUrl}links`);
+        Object.keys(queryParams).forEach((key) => {
+            url.searchParams.append(key, queryParams[key]);
+        });
+        return this.http.get<HttpListResponse>(url.toString()).pipe(
             tap((data) => this.linksSignal.set(data.data)) // Updates the global signal state smoothly
         );
     }
 
     // 2. POST: Create a new link
-    createLink(newLink: Partial<LinkModel>): Observable<LinkModel> {
-        return this.http.post<LinkModel>(this.apiUrl, newLink).pipe(
-            tap((createdLink) => {
+    createItem(newLink: Partial<LinkModel>): Observable<LinkMutationResponse> {
+        return this.http.post<LinkMutationResponse>(`${this.apiUrl}links`, newLink).pipe(
+            tap((response) => {
                 // Optimistically add the new item to our local signal array instantly
-                this.linksSignal.update((currentLinks) => [...currentLinks, createdLink]);
+                this.linksSignal.update((currentLinks) => (currentLinks ? [...currentLinks, response.data] : [response.data]));
             })
         );
     }
 
     // 3. PUT: Update an existing link
-    updateLink(id: number, updatedData: Partial<LinkModel>): Observable<LinkModel> {
-        return this.http.put<LinkModel>(`${this.apiUrl}/${id}`, updatedData).pipe(
-            tap((savedLink) => {
+    updateItem(id: number, updatedData: Partial<LinkModel>): Observable<LinkMutationResponse> {
+        return this.http.put<LinkMutationResponse>(`${this.apiUrl}links/${id}`, updatedData).pipe(
+            tap((response) => {
                 // Map over the signal array and replace the old item with the updated one
-                this.linksSignal.update((currentLinks) => currentLinks.map((link) => (link.id === id ? savedLink : link)));
+                this.linksSignal.update((currentLinks) =>
+                    currentLinks ? currentLinks.map((link) => (link.id === id ? response.data : link)) : [response.data]
+                );
             })
         );
     }
 
     // 4. DELETE: Erase a link
-    deleteLink(id: number): Observable<void> {
-        return this.http.delete<void>(`${this.apiUrl}/${id}`).pipe(
+    deleteItem(id: number): Observable<void> {
+        return this.http.delete<void>(`${this.apiUrl}links/${id}`).pipe(
             tap(() => {
                 // Remove the item from our local signal array
-                this.linksSignal.update((currentLinks) => currentLinks.filter((link) => link.id !== id));
+                this.linksSignal.update((currentLinks) => currentLinks ? currentLinks.filter((link) => link.id !== id) : []);
             })
         );
     }

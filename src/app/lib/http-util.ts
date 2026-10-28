@@ -23,3 +23,12 @@ export function getHttpErrormessage(err: any, defaultError: string): string | st
     }
     return errorMsg;
 }
+
+
+export function getHttpErrormessageAsString(err: any, defaultError: string): string {
+    const errorMsg = getHttpErrormessage(err, defaultError);
+    if (Array.isArray(errorMsg)) {
+        return errorMsg.join(' ');
+    }
+    return errorMsg;
+}
