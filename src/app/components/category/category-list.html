@@ -3,7 +3,11 @@
   (menuClosed)="onCategoryMenuClosed()" (onEdit)="editCategory($event)" (onDelete)="deleteCategory($event)" (onAddCategory)="addCategory($event)" (onAddLink)="addLink($event)"></app-category-menu>
 
   <div class="module-title rounded-lg bg-tree-module-bg text-tree-title" (click)="showFilterInput()">
-    <mat-icon matListItemIcon class="module-icon">{{ module()?.icon }}</mat-icon>
+    <button mat-icon-button type="button" class="module-toggle"
+      (click)="toggleModuleCategories($event)"
+      [attr.aria-label]="isModuleCategoriesExpanded() ? 'Collapse module categories' : 'Expand module categories'">
+      <mat-icon class="module-icon">{{ isModuleCategoriesExpanded() ? module()?.icon : 'expand_more' }}</mat-icon>
+    </button>
     @if (isSidebarExpanded()) {
       @if (isFilterInputVisible()) {
       <input #filterInputEl type="text" placeholder="Filter categories..."
@@ -21,7 +25,7 @@
     }
     }
   </div>
-@if (isSidebarExpanded()) {
+@if (isSidebarExpanded() && isModuleCategoriesExpanded()) {
   <mat-tree #categoryTreeRef [dataSource]="categoryTree()" [childrenAccessor]="childrenAccessor">
     <!-- Leaf Nodes -->
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodePadding matTreeNodePaddingIndent="10"

@@ -8,8 +8,9 @@
       @if (isSidebarExpanded()) {
       <span class="text-lg font-bold text-slate-800 tracking-tight">Organizer</span>
       }
-      <button mat-icon-button (click)="toggleSidebar()">
-        <mat-icon>menu</mat-icon>
+      <button mat-icon-button (click)="toggleSidebar()"
+        [attr.aria-label]="isSidebarExpanded() ? 'Collapse sidebar' : 'Expand sidebar'">
+        <mat-icon>{{ isSidebarExpanded() ? 'chevron_left' : 'chevron_right' }}</mat-icon>
       </button>
     </div>
 
@@ -20,14 +21,12 @@
     <mat-nav-list class="p-2">
       @for (module of modules(); track module.id) {
       <app-category-list #categoryList class="block" [class.mt-2]="$index > 0" [module]="module"
-        [isSidebarExpanded]="isSidebarExpanded()"
-        (categorySelected)="handleCategorySelection($event)"
-        (categoryDeselected)="handleCategoryDeselection($event)"
-        (toastMessage)="showCategoryToast($event)"
-        [categoryTreeData]="categoryTreeData()"
-        [categoryListData]="categoryListData()"
-        [selectedCategoryId]="selectedCategory()?.id ?? null"
-        (linkUpdated)="updateLinkList($event)">
+        [isSidebarExpanded]="isSidebarExpanded()" (categorySelected)="handleCategorySelection($event)"
+        (categoryDeselected)="handleCategoryDeselection($event)" (toastMessage)="showCategoryToast($event)"
+        [categoryTreeData]="categoryTreeData()" [categoryListData]="categoryListData()"
+        [selectedCategoryId]="selectedCategory()?.id ?? null" 
+        (linkUpdated)="updateLinkList($event)"
+        (linkAdded)="addLink($event)">
       </app-category-list>
       }
     </mat-nav-list>
@@ -51,11 +50,18 @@
       <div class="h-16 border-b border-slate-100 flex items-center px-4 bg-slate-50/50">
         <div class="relative w-full">
           <mat-icon class="absolute left-3 top-2.5 text-slate-400 scale-90">search</mat-icon>
-          <input type="text" placeholder="Search multiple fields..."
+          <input type="text" placeholder="Search multiple fields..." [value]="searchQuery()"
+            (input)="searchLinks($event)"
             class="w-full pl-10 pr-4 py-2 text-sm bg-slate-100 rounded-full border-none focus:outline-none focus:ring-2 focus:ring-blue-500/20 text-slate-700 placeholder-slate-400" />
         </div>
+        @if (selectedCategory()) {
+        <button matIconButton (click)="addLink()" class="action-icons ml-auto" matTooltip="Add Link"
+          [matTooltipPosition]="tooltipPosition">
+          <mat-icon class="text-slate-500">add_circle_outline</mat-icon>
+        </button>
+      }
       </div>
-      @if (selectedCategory()) {
+      @if (selectedCategory() || searchQuery().length >= 3) {
       <div>
         <!-- Scrollable Data Items Row -->
         @if (isLinksLoading()) {
@@ -70,9 +76,22 @@
                 }}
               </h3>
               <span class="text-xs px-2 py-0.5 rounded-full bg-slate-100 font-medium text-slate-600">{{
-                item.category.name
+                item.updated_at | date:'shortDate'
                 }}</span>
             </div>
+            @if (item.breadcrumbs?.length) {
+            <div class="mb-1 flex items-center gap-1 text-xs text-slate-500">
+              @for (breadcrumb of item.breadcrumbs; track breadcrumb.id; let last = $last) {
+              <button type="button" class="hover:text-blue-600 hover:underline"
+                (click)="selectBreadcrumbCategory(breadcrumb.id, $event)">
+                {{ breadcrumb.name }}
+              </button>
+              @if (!last) {
+              <mat-icon class="!h-3 !w-3 !text-xs">chevron_right</mat-icon>
+              }
+              }
+            </div>
+            }
             <p class="text-xs text-slate-400 truncate max-w-[280px]">{{ item.description }}</p>
           </div>
           }
@@ -122,7 +141,8 @@
             <button mat-flat-button color="primary" class="rounded-lg" (click)="onLinkEdit()">
               <mat-icon class="scale-90">edit</mat-icon> Edit Entry
             </button>
-            <button mat-stroked-button class="rounded-lg !text-rose-600 !border-rose-200 hover:!bg-rose-50" (click)="onLinkDelete()">
+            <button mat-stroked-button class="rounded-lg !text-rose-600 !border-rose-200 hover:!bg-rose-50"
+              (click)="onLinkDelete()">
               <mat-icon class="scale-90">delete</mat-icon> Purge
             </button>
           </div>

@@ -22,7 +22,7 @@
         <mat-form-field class="w-full">
             <mat-select formControlName="category_id" placeholder="Select a category">
                 @for (category of categories(); track category.id) {
-                <mat-option [value]="category.id">{{ category.nameIndented || category.name }}</mat-option>
+                <mat-option [value]="category.id" class="display-space">{{ category.nameIndented || category.name }}</mat-option>
                 }
             </mat-select>
         </mat-form-field>

@@ -19,6 +19,23 @@ describe('CategoryList', () => {
         expect(component).toBeTruthy();
     });
 
+    it('collapses and expands module categories from the module icon button', () => {
+        fixture.detectChanges();
+
+        const toggleButton = fixture.nativeElement.querySelector('.module-toggle') as HTMLButtonElement;
+        expect(toggleButton.getAttribute('aria-label')).toBe('Collapse module categories');
+
+        toggleButton.click();
+        fixture.detectChanges();
+        expect(component.isModuleCategoriesExpanded()).toBe(false);
+        expect(toggleButton.getAttribute('aria-label')).toBe('Expand module categories');
+        expect(toggleButton.querySelector('mat-icon')?.textContent?.trim()).toBe('arrow_downward');
+
+        toggleButton.click();
+        fixture.detectChanges();
+        expect(component.isModuleCategoriesExpanded()).toBe(true);
+    });
+
     it('filters after two characters and retains ancestors of matching categories', () => {
         fixture.componentRef.setInput('module', {
             id: 1,

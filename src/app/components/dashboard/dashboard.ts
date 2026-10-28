@@ -1,11 +1,13 @@
 import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
-import { finalize, firstValueFrom, of } from 'rxjs';
+import { DatePipe } from '@angular/common';
+import { finalize, firstValueFrom, of, Subscription } from 'rxjs';
 
 import { Router } from '@angular/router';
 import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../services/auth';
 import { CategoryList, CategoryOption, LinkUpdatedEvent } from '../category/category-list';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
@@ -16,13 +18,23 @@ import { LinkEdit } from '../category/link-edit';
 
 import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
-import { ModuleService } from '../../services/module';
+import { ModuleService, ModuleModel } from '../../services/module';
 import { buildTree, flattenTree } from '../../lib/array-util';
 import { getHttpErrormessageAsString } from '../../lib/http-util';
 import { response } from 'express';
 
 @Component({
-    imports: [MatSidenavModule, MatListModule, MatButtonModule, MatIconModule, CategoryList, SkeletonLoader, SpinnerLoader],
+    imports: [
+        MatSidenavModule,
+        MatListModule,
+        MatButtonModule,
+        MatIconModule,
+        CategoryList,
+        SkeletonLoader,
+        DatePipe,
+        SpinnerLoader,
+        MatTooltipModule
+    ],
     selector: 'app-dashboard',
     styleUrl: './dashboard.scss',
     templateUrl: './dashboard.html'
@@ -37,12 +49,12 @@ export class Dashboard implements OnInit, OnDestroy {
     private linkService = inject(LinkService);
     private categoryService = inject(CategoryService);
     private moduleService = inject(ModuleService);
-    selectedCategory = signal<CategoryOption | null>(null);
     private categoriesLoading = false;
     private modulesLoading = false;
 
-    icon1 = signal('link');
-    icon2 = signal('folder');
+    tooltipPosition = 'above' as TooltipPosition;
+    selectedCategory = signal<CategoryOption | null>(null);
+    searchQuery = signal('');
 
     isSidebarExpanded = signal(true);
     isModulesLoading = signal(false);
@@ -51,6 +63,9 @@ export class Dashboard implements OnInit, OnDestroy {
     // Track the currently selected item details
     selectedLink = signal<any>(null);
     private categoryToastTimeout?: ReturnType<typeof setTimeout>;
+    private searchTimeout?: ReturnType<typeof setTimeout>;
+    private linksRequest?: Subscription;
+    private searchRequest?: Subscription;
 
     private linksCachedMap = new Map<number, LinkModel[]>();
 
@@ -61,7 +76,6 @@ export class Dashboard implements OnInit, OnDestroy {
     // Build a tree structure from the flat category list for display
     categoryTreeData = computed(() => buildTree(this.categories()));
     // Flatten the tree structure for display in a dropdown list
-    // categoryList = computed(() => flattenTree(this.categoryTree()));
     categoryListData = computed(() => flattenTree(this.categoryTreeData()));
 
     ngOnInit() {
@@ -70,6 +84,9 @@ export class Dashboard implements OnInit, OnDestroy {
 
     ngOnDestroy() {
         clearTimeout(this.categoryToastTimeout);
+        clearTimeout(this.searchTimeout);
+        this.linksRequest?.unsubscribe();
+        this.searchRequest?.unsubscribe();
     }
 
     showCategoryToast(message: string, duration: number = 3500) {
@@ -130,7 +147,37 @@ export class Dashboard implements OnInit, OnDestroy {
             });
     }
 
+    getCategoryBreadcrumbs(category: CategoryOption, categoryListIndexed: Map<number, CategoryOption>): CategoryOption[] {
+        const breadcrumbs: CategoryOption[] = [];
+        let currentCategory: CategoryOption | undefined = category;
+        while (currentCategory) {
+            breadcrumbs.unshift(currentCategory);
+            if (!currentCategory.parent_id) {
+                break;
+            }
+            currentCategory = categoryListIndexed.get(currentCategory.parent_id);
+        }
+        return breadcrumbs;
+    }
+
+    transformLinks(links: LinkModel[]): LinkModel[] {
+        const categoryListIndexed = new Map<number, CategoryOption>();
+        this.categoryListData().forEach((cat) => categoryListIndexed.set(cat.id, cat));
+        return links.map((link) => {
+            const category = categoryListIndexed.get(link.category_id);
+            return {
+                ...link,
+                breadcrumbs: link.breadcrumbs?.length
+                    ? link.breadcrumbs
+                    : category
+                      ? this.getCategoryBreadcrumbs(category, categoryListIndexed)
+                      : []
+            };
+        });
+    }
+
     fetchLinks(categoryId: number) {
+        this.linksRequest?.unsubscribe();
         const cached = this.linksCachedMap.get(categoryId);
         if (cached) {
             this.links.set(cached);
@@ -138,17 +185,66 @@ export class Dashboard implements OnInit, OnDestroy {
         }
 
         this.isLinksLoading.set(true);
-        this.linkService
+        this.linksRequest = this.linkService
             .fetchItems({ category_id: categoryId })
             .pipe(finalize(() => this.isLinksLoading.set(false)))
             .subscribe({
                 next: (data) => {
                     console.log('Links synced successfully from backend!');
-                    this.links.set(data.data);
-                    this.linksCachedMap.set(categoryId, data.data); // Cache the links for this category
+                    const transformedLinks = data.data;
+                    this.links.set(transformedLinks);
+                    this.linksCachedMap.set(categoryId, transformedLinks); // Cache the links for this category
                 },
                 error: (err) => console.error('Failed to resolve links payload', err)
             });
+    }
+
+    fetchLinksBySearch(query: string) {
+        this.isLinksLoading.set(true);
+        this.searchRequest = this.linkService
+            .fetchItems({ search: query })
+            .pipe(finalize(() => this.isLinksLoading.set(false)))
+            .subscribe({
+                next: (data) => {
+                    this.links.set(this.transformLinks(data.data));
+                },
+                error: (err) => {
+                    const errorMessage = getHttpErrormessageAsString(err, 'Failed to search links. Please try again later.');
+                    this.showCategoryToast(errorMessage, 7000);
+                    console.error('Failed to search links', err);
+                }
+            });
+    }
+
+    searchLinks(event: Event) {
+        const input = event.target;
+        if (!(input instanceof HTMLInputElement)) {
+            return;
+        }
+
+        clearTimeout(this.searchTimeout);
+        const previousQuery = this.searchQuery();
+        const query = input.value;
+        this.searchQuery.set(query);
+
+        if (query.length < 3) {
+            if (previousQuery.length >= 3) {
+                this.searchRequest?.unsubscribe();
+                const category = this.selectedCategory();
+                if (category) {
+                    this.fetchLinks(category.id);
+                } else {
+                    this.links.set([]);
+                }
+            }
+            return;
+        }
+
+        this.linksRequest?.unsubscribe();
+        this.searchRequest?.unsubscribe();
+        this.searchTimeout = setTimeout(() => {
+            this.fetchLinksBySearch(query);
+        }, 500);
     }
 
     log(data: any) {
@@ -157,12 +253,22 @@ export class Dashboard implements OnInit, OnDestroy {
 
     toggleSidebar() {
         this.isSidebarExpanded.update((val) => !val);
-        this.icon1.update((val) => (val === 'link' ? 'menu' : 'link'));
     }
 
-    selectLink(link: any) {
+    selectLink(link: LinkModel) {
         console.log(link);
         this.selectedLink.set(link);
+        this.setSelectedCategoryForLink(link);
+    }
+
+    selectBreadcrumbCategory(categoryId: number, event: MouseEvent) {
+        event.stopPropagation();
+        const category = this.categoryListData().find((item) => item.id === categoryId);
+        if (!category) {
+            console.warn(`Category ${categoryId} from link breadcrumb was not found.`);
+            return;
+        }
+        this.handleCategorySelection(category);
     }
 
     onSignOut() {
@@ -172,7 +278,17 @@ export class Dashboard implements OnInit, OnDestroy {
 
     handleCategorySelection(category: CategoryOption) {
         console.log('Clicked category captured from child tree component:', category);
+        if (this.selectedCategory()?.id === category.id) {
+            console.log('Category already selected, no action taken.');
+            return;
+        }
+        clearTimeout(this.searchTimeout);
+        this.searchRequest?.unsubscribe();
+        this.searchQuery.set('');
         this.selectedCategory.set(category);
+        if (this.selectedLink()) {
+            this.selectedLink.set(null);
+        }
         this.fetchLinks(category.id); // Fetch links for the selected category
         // We can now use this category name to pass into our upcoming RxJS search filter!
     }
@@ -204,19 +320,17 @@ export class Dashboard implements OnInit, OnDestroy {
             let updatedLinks;
             // if category changed, remove the item from current links
             if (link.category_id !== this.selectedCategory()?.id) {
-              updatedLinks = currentLinks.filter((l) => (l.id !== link.id));
-              // update the link list in the new category
-              const newCategoryUpdatedLinks = this.linksCachedMap.get(link.category_id) || [];
-              newCategoryUpdatedLinks.push(link);
-              this.linksCachedMap.set(link.category_id, newCategoryUpdatedLinks);
-            }
-            else {
-              updatedLinks = currentLinks.map((l) => (l.id === link.id ? link : l));
+                updatedLinks = currentLinks.filter((l) => l.id !== link.id);
+                // update the link list in the new category
+                const newCategoryUpdatedLinks = this.linksCachedMap.get(link.category_id) || [];
+                newCategoryUpdatedLinks.push(link);
+                this.linksCachedMap.set(link.category_id, newCategoryUpdatedLinks);
+            } else {
+                updatedLinks = currentLinks.map((l) => (l.id === link.id ? link : l));
             }
             // update the links in the current selected category
             this.links.set(updatedLinks);
             this.linksCachedMap.set(this.selectedCategory()?.id || link.category_id, updatedLinks);
-
         } else if (action === 'delete' && existingLink) {
             const updatedLinks = currentLinks.filter((l) => l.id !== link.id);
             this.links.set(updatedLinks);
@@ -233,10 +347,17 @@ export class Dashboard implements OnInit, OnDestroy {
         this.editLink(selectedLink);
     }
 
-    getCategoryListForDropdown(): CategoryOption[] {
-        const moduleCategories = this.categoryListData().filter(
-            (category) => category.module_id === this.selectedCategory()?.module_id
-        );
+    /**
+     * Set the selected category when a link from the search list is clicked
+     * @param { LinkModel } link
+     */
+    private setSelectedCategoryForLink(link: LinkModel) {
+        const category = this.categoryListData().find((item) => item.id === link.category_id) ?? null;
+        this.selectedCategory.set(category);
+    }
+
+    getCategoryListForDropdown(moduleId: number): CategoryOption[] {
+        const moduleCategories = this.categoryListData().filter((category) => category.module_id === moduleId);
         return moduleCategories;
     }
 
@@ -258,7 +379,7 @@ export class Dashboard implements OnInit, OnDestroy {
                     comment: item.comment
                 },
                 data: {
-                    categories: this.getCategoryListForDropdown()
+                    categories: this.getCategoryListForDropdown(item.category.module_id)
                 },
                 id: item.id,
                 saveCallback: (id: number, result: Partial<LinkModel> | false) => this.saveLinkHandler(id, result, 'update')
@@ -274,6 +395,37 @@ export class Dashboard implements OnInit, OnDestroy {
         });
     }
 
+    addLink(category?: CategoryOption | null) {
+        const categoryId = category ? category.id : this.selectedCategory()?.id; // Default to 0 if no category is selected
+        const categoryModuleId = category ? category.module_id : this.selectedCategory()?.module_id || 0; // Default to 0 if no category is selected
+        const dialogRef = this.dialogService.openEdit(
+            LinkEdit,
+            {
+                title: 'Add link',
+                componentInputs: {
+                    name: '',
+                    url: '',
+                    category_id: categoryId,
+                    description: '',
+                    comment: ''
+                },
+                data: {
+                    categories: this.getCategoryListForDropdown(categoryModuleId)
+                },
+                id: 0,
+                saveCallback: (id: number, result: Partial<LinkModel> | false) => this.saveLinkHandler(id, result, 'add')
+            },
+            { width: '480px' }
+        );
+
+        dialogRef.afterClosed().subscribe((result: Partial<LinkModel> | false | undefined) => {
+            if (result == null || result === false) {
+                return;
+            }
+            this.showCategoryToast('Link created successfully.');
+        });
+    }
+
     private async saveLinkHandler(
         _id: number,
         data: Partial<LinkModel> | false,
@@ -283,7 +435,12 @@ export class Dashboard implements OnInit, OnDestroy {
             return false;
         }
 
-        const response = await firstValueFrom(this.linkService.updateItem(_id, data));
+        let response;
+        if (action === 'add') {
+            response = await firstValueFrom(this.linkService.createItem(data));
+        } else {
+            response = await firstValueFrom(this.linkService.updateItem(_id, data));
+        }
         const linkUpdatedEvent: LinkUpdatedEvent = {
             link: response.data,
             action: action

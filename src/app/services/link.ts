@@ -14,7 +14,7 @@ export interface LinkModel {
     name: string;
     url: string;
     category_id: number;
-    category: { id: number; name: string };
+    category: { id: number; name: string; module_id: number };
     comment: string;
     description: string;
     username?: string;
@@ -22,6 +22,9 @@ export interface LinkModel {
     rating?: number;
     last_accessed_at?: string;
     last_check_result?: number;
+    updated_at?: string;
+    created_at?: string;
+    breadcrumbs?: Array<{ id: number; name: string }>;
 }
 
 @Injectable({
@@ -73,7 +76,7 @@ export class LinkService {
         return this.http.delete<void>(`${this.apiUrl}links/${id}`).pipe(
             tap(() => {
                 // Remove the item from our local signal array
-                this.linksSignal.update((currentLinks) => currentLinks ? currentLinks.filter((link) => link.id !== id) : []);
+                this.linksSignal.update((currentLinks) => (currentLinks ? currentLinks.filter((link) => link.id !== id) : []));
             })
         );
     }

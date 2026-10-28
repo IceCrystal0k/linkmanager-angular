@@ -20,13 +20,11 @@ import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
 import { CategoryEdit } from './category-edit';
-import { LinkEdit } from './link-edit';
 import { slugify } from '../../lib/string-util';
 import { restoreExpandedNodes } from '../../lib/ui-util';
 import { CategoryModel, CategoryService } from '../../services/category';
 import { ModuleModel } from '../../services/module';
 import { LinkModel, LinkService } from '../../services/link';
-import { firstValueFrom } from 'rxjs';
 
 export interface CategoryOption {
     id: number;
@@ -75,10 +73,12 @@ export class CategoryList {
     categoryDeselected = output<number>();
     toastMessage = output<string>();
     linkUpdated = output<LinkUpdatedEvent>();
+    linkAdded = output<CategoryOption | null>();
 
     selectedItem = signal<CategoryOption | null>(null);
     isFilterInputVisible = signal<boolean>(false);
     filterText = signal<string>('');
+    isModuleCategoriesExpanded = signal(true);
 
     // Tree category structure
     categoryTreeData = input<CategoryOption[]>([]);
@@ -97,6 +97,13 @@ export class CategoryList {
     });
     private expandedNodeIds = new Set<number>();
 
+    private restoreModuleExpansionOnFilter = effect(() => {
+        const isFiltering = this.filterText().trim().length >= 2;
+        if (isFiltering && !this.isModuleCategoriesExpanded()) {
+            this.isModuleCategoriesExpanded.set(true);
+        }
+    });
+
     private restoreExpansionOnDataChange = effect(() => {
         const treeData = this.categoryTree();
         const isFiltering = this.filterText().trim().length >= 2;
@@ -112,6 +119,40 @@ export class CategoryList {
                     this.expandFilteredAncestors(treeData, tree);
                 } else {
                     restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
+                }
+            },
+            { injector: this.injector }
+        );
+    });
+
+    private expandSelectedCategory = effect(() => {
+        const selectedId = this.selectedCategoryId();
+        const moduleId = this.module()?.id;
+        if (selectedId == null || moduleId == null) {
+            return;
+        }
+
+        const moduleCategories = this.categoryTreeData().filter((category) => category.module_id === moduleId);
+        const path = this.findCategoryPath(moduleCategories, selectedId);
+        if (!path) {
+            return;
+        }
+
+        this.isModuleCategoriesExpanded.set(true);
+        if (!this.findCategoryPath(this.categoryTree(), selectedId)) {
+            this.filterText.set('');
+        }
+
+        afterNextRender(
+            () => {
+                const tree = this.categoryTreeRef;
+                if (!tree) {
+                    return;
+                }
+
+                for (const ancestor of path.slice(0, -1)) {
+                    this.expandedNodeIds.add(ancestor.id);
+                    tree.expand(ancestor);
                 }
             },
             { injector: this.injector }
@@ -142,6 +183,21 @@ export class CategoryList {
                 this.expandFilteredAncestors(node.children, tree);
             }
         }
+    }
+
+    private findCategoryPath(categories: CategoryOption[], categoryId: number): CategoryOption[] | null {
+        for (const category of categories) {
+            if (category.id === categoryId) {
+                return [category];
+            }
+
+            const childPath = this.findCategoryPath(category.children ?? [], categoryId);
+            if (childPath) {
+                return [category, ...childPath];
+            }
+        }
+
+        return null;
     }
 
     getCategoryNameParts(name: string): CategoryNamePart[] {
@@ -208,6 +264,13 @@ export class CategoryList {
         }
 
         this.categoryTreeRef?.toggle(node);
+    }
+
+    toggleModuleCategories(event: MouseEvent) {
+        event.stopPropagation();
+        if (this.filterText().trim().length < 2) {
+            this.isModuleCategoriesExpanded.update((expanded) => !expanded);
+        }
     }
 
     getCategoryListForDropdown(excludeId: number | null = null): CategoryOption[] {
@@ -372,55 +435,8 @@ export class CategoryList {
     }
 
     addLink(item: CategoryOption | null) {
-        if (!item) {
-            console.warn('No category selected for creating a link.');
-            return;
-        }
-
-        const dialogRef = this.dialogService.openEdit(
-            LinkEdit,
-            {
-                title: 'Add link',
-                componentInputs: {
-                    name: '',
-                    url: '',
-                    category_id: item.id,
-                    description: '',
-                    comment: ''
-                },
-                data: {
-                    categories: this.getCategoryListForDropdown()
-                },
-                id: 0,
-                saveCallback: (id: number, result: Partial<LinkModel> | false) => this.saveLinkHandler(id, result, 'add')
-            },
-            { width: '480px' }
-        );
-
-        dialogRef.afterClosed().subscribe((result: Partial<LinkModel> | false | undefined) => {
-            if (result == null || result === false) {
-                return;
-            }
-            this.toastMessage.emit('Link created successfully.');
-        });
-    }
-
-    private async saveLinkHandler(
-        _id: number,
-        data: Partial<LinkModel> | false,
-        action: 'add' | 'update' | 'delete'
-    ): Promise<LinkModel | false> {
-        if (data === false) {
-            return false;
-        }
-
-        const response = await firstValueFrom(this.linkService.createItem(data));
-        const linkUpdatedEvent: LinkUpdatedEvent = {
-            link: response.data,
-            action: action
-        };
-        this.linkUpdated.emit(linkUpdatedEvent);
-        return response.data;
+        this.linkAdded.emit(item);
+        return;
     }
 
     onCategorySelect(node: CategoryOption, tree: MatTree<CategoryOption>, event: MouseEvent) {
