@@ -8,6 +8,9 @@ export type TreeItem<T> = T & {
 export function buildTree<T extends { id: number; parent_id: number | null; name: string }>(
     items: readonly T[]
 ): TreeItem<T>[] {
+    if (!items || items.length === 0) {
+        return [];
+    }
     const childrenByParent = new Map<number | null, T[]>();
 
     for (const item of items) {

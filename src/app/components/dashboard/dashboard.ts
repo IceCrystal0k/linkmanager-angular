@@ -1,4 +1,4 @@
-import { Component, signal, inject, OnInit, OnDestroy, computed } from '@angular/core';
+import { Component, signal, inject, OnInit, OnDestroy, computed, ViewChild, ElementRef, Injector, afterNextRender } from '@angular/core';
 import { DatePipe } from '@angular/common';
 import { finalize, firstValueFrom, of, Subscription } from 'rxjs';
 
@@ -7,6 +7,8 @@ import { MatSidenavModule } from '@angular/material/sidenav';
 import { MatListModule } from '@angular/material/list';
 import { MatIconModule } from '@angular/material/icon';
 import { MatButtonModule } from '@angular/material/button';
+import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatMenuModule } from '@angular/material/menu';
 import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { AuthService } from '../../services/auth';
 import { CategoryList, CategoryOption, LinkUpdatedEvent } from '../category/category-list';
@@ -15,6 +17,8 @@ import { SkeletonLoader } from '../common/skeleton-loader';
 import { SpinnerLoader } from '../common/spinner-loader';
 import { UiDialogService } from '../../services/ui-dialog';
 import { LinkEdit } from '../category/link-edit';
+import { UserProfile } from '../account/user-profile';
+import { UserSettings } from '../account/user-settings';
 
 import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
@@ -29,6 +33,8 @@ import { response } from 'express';
         MatListModule,
         MatButtonModule,
         MatIconModule,
+        MatCheckboxModule,
+        MatMenuModule,
         CategoryList,
         SkeletonLoader,
         DatePipe,
@@ -42,6 +48,7 @@ import { response } from 'express';
 export class Dashboard implements OnInit, OnDestroy {
     protected readonly title = signal('organizer');
     private router = inject(Router);
+    private injector = inject(Injector);
     private authService = inject(AuthService); // Inject the service
     private dialogService = inject(UiDialogService); // Inject the service
 
@@ -55,6 +62,15 @@ export class Dashboard implements OnInit, OnDestroy {
     tooltipPosition = 'above' as TooltipPosition;
     selectedCategory = signal<CategoryOption | null>(null);
     searchQuery = signal('');
+    isSearchInputVisible = signal(false);
+    isCheckboxVisible = signal(false);
+    selectedLinkIds = signal<Set<number>>(new Set());
+    areAllCheckboxesChecked = computed(() => {
+        const links = this.links();
+        return links.length > 0 && links.every((link) => this.selectedLinkIds().has(link.id));
+    });
+
+    @ViewChild('searchInput') private searchInput?: ElementRef<HTMLInputElement>;
 
     isSidebarExpanded = signal(true);
     isModulesLoading = signal(false);
@@ -246,6 +262,107 @@ export class Dashboard implements OnInit, OnDestroy {
             this.fetchLinksBySearch(query);
         }, 500);
     }
+
+    toggleSearchInput() {
+        this.isSearchInputVisible.set(!this.isSearchInputVisible());
+        afterNextRender(() => this.searchInput?.nativeElement.focus(), {
+            injector: this.injector
+        });
+    }
+
+    clearSearch() {
+        const hadSearchQuery = this.searchQuery().length >= 3;
+        clearTimeout(this.searchTimeout);
+        this.searchRequest?.unsubscribe();
+        this.searchQuery.set('');
+
+        if (hadSearchQuery) {
+            const category = this.selectedCategory();
+            if (category) {
+                this.fetchLinks(category.id);
+            } else {
+                this.links.set([]);
+            }
+        }
+    }
+
+    hideSearchInput() {
+        this.isSearchInputVisible.set(false);
+    }
+
+    showSelectionCheckbox() {
+        this.isCheckboxVisible.set(true);
+    }
+
+    selectAllCheckboxes() {
+        this.toggleAllSelections(true);
+    }
+
+    deselectAllCheckboxes() {
+        this.toggleAllSelections(false);
+    }
+
+    hideSelectionCheckbox() {
+        this.isCheckboxVisible.set(false);
+    }
+
+    onSelectionCheckboxChange(checked: boolean) {
+        this.toggleAllSelections(checked);
+    }
+
+    toggleAllSelections(checked: boolean) {
+        const selectedLinkIds = new Set(this.selectedLinkIds());
+        for (const link of this.links()) {
+            if (checked) {
+                selectedLinkIds.add(link.id);
+            } else {
+                selectedLinkIds.delete(link.id);
+            }
+        }
+        this.selectedLinkIds.set(selectedLinkIds);
+    }
+
+    toggleLinkSelection(linkId: number, checked: boolean) {
+        this.selectedLinkIds.update((selectedLinkIds) => {
+            const updatedLinkIds = new Set(selectedLinkIds);
+            if (checked) {
+                updatedLinkIds.add(linkId);
+            } else {
+                updatedLinkIds.delete(linkId);
+            }
+            return updatedLinkIds;
+        });
+    }
+
+    logSelectedLinkIds() {
+        console.log([...this.selectedLinkIds()]);
+    }
+
+    openUserProfile() {
+        this.dialogService.openEdit(
+            UserProfile,
+            {
+                title: 'Profile',
+                cancelButtonText: 'Close',
+                saveButtonText: 'Done'
+            },
+            { height: 'auto', maxHeight: '80vh' }
+        );
+    }
+
+    openUserSettings() {
+        this.dialogService.openEdit(
+            UserSettings,
+            {
+                title: 'Settings',
+                cancelButtonText: 'Close',
+                saveButtonText: 'Done'
+            },
+            { height: 'auto', maxHeight: '80vh' }
+        );
+    }
+
+    onFilterClick() {}
 
     log(data: any) {
         console.log(data);
