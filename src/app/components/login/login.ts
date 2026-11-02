@@ -52,9 +52,7 @@ export class Login {
     onGoogleLogin(): void {
         this.errorMessage.set(null);
         this.socialLoginLoading.set(true);
-        this.authService.startGoogleLogin().pipe(
-            finalize(() => this.socialLoginLoading.set(false))
-        ).subscribe({
+        this.authService.startGoogleLogin().subscribe({
             next: (response: any) => {
                 if (response && response.data.url) {
                     window.location.assign(response.data.url);
@@ -64,6 +62,7 @@ export class Login {
                 console.error('Google login failed', err);
                 let errorMsg = getHttpErrormessage(err, 'Failed to initiate Google login.');
                 this.errorMessage.set(errorMsg);
+                this.socialLoginLoading.set(false)
             }
         });
     }

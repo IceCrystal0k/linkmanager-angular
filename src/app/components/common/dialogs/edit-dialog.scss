@@ -1,7 +1,7 @@
 :host {
     display: flex;
     flex-direction: column;
-    height: 100%; 
+    height: 100%;
     ::ng-deep {
         .edit-dialog-button:focus {
             .mat-mdc-button-persistent-ripple::before {
@@ -10,6 +10,10 @@
             }
         }
     }
+}
+
+.mat-mdc-dialog-content {
+  max-height: calc(100vh - 142px);
 }
 
 mat-dialog-content {

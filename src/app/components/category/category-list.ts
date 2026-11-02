@@ -1,4 +1,16 @@
-import { Component, signal, input, output, inject, ViewChild, effect, computed, ElementRef, Injector, afterNextRender } from '@angular/core';
+import {
+    Component,
+    signal,
+    input,
+    output,
+    inject,
+    ViewChild,
+    effect,
+    computed,
+    ElementRef,
+    Injector,
+    afterNextRender
+} from '@angular/core';
 import { MatTree, MatTreeModule } from '@angular/material/tree';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
@@ -12,6 +24,7 @@ import { slugify } from '../../lib/string-util';
 import { restoreExpandedNodes } from '../../lib/ui-util';
 import { CategoryModel, CategoryService } from '../../services/category';
 import { ModuleModel } from '../../services/module';
+import { LinkModel, LinkService } from '../../services/link';
 
 export interface CategoryOption {
     id: number;
@@ -28,6 +41,11 @@ interface CategoryNamePart {
     highlighted: boolean;
 }
 
+export interface LinkUpdatedEvent {
+    link: LinkModel;
+    action: 'add' | 'update' | 'delete';
+}
+
 @Component({
     selector: 'app-category-list',
     standalone: true,
@@ -38,6 +56,7 @@ interface CategoryNamePart {
 export class CategoryList {
     private dialogService = inject(UiDialogService); // Inject the service
     private categoryService = inject(CategoryService);
+    private linkService = inject(LinkService);
     private injector = inject(Injector);
     module = input<ModuleModel | null>(null);
     tooltipPosition = 'above' as TooltipPosition;
@@ -53,10 +72,13 @@ export class CategoryList {
     categorySelected = output<CategoryOption>();
     categoryDeselected = output<number>();
     toastMessage = output<string>();
+    linkUpdated = output<LinkUpdatedEvent>();
+    linkAdded = output<CategoryOption | null>();
 
     selectedItem = signal<CategoryOption | null>(null);
     isFilterInputVisible = signal<boolean>(false);
     filterText = signal<string>('');
+    isModuleCategoriesExpanded = signal(true);
 
     // Tree category structure
     categoryTreeData = input<CategoryOption[]>([]);
@@ -75,22 +97,66 @@ export class CategoryList {
     });
     private expandedNodeIds = new Set<number>();
 
+    private restoreModuleExpansionOnFilter = effect(() => {
+        const isFiltering = this.filterText().trim().length >= 2;
+        if (isFiltering && !this.isModuleCategoriesExpanded()) {
+            this.isModuleCategoriesExpanded.set(true);
+        }
+    });
+
     private restoreExpansionOnDataChange = effect(() => {
         const treeData = this.categoryTree();
         const isFiltering = this.filterText().trim().length >= 2;
 
-        afterNextRender(() => {
-            const tree = this.categoryTreeRef;
-            if (!tree) {
-                return;
-            }
+        afterNextRender(
+            () => {
+                const tree = this.categoryTreeRef;
+                if (!tree) {
+                    return;
+                }
 
-            if (isFiltering) {
-                this.expandFilteredAncestors(treeData, tree);
-            } else {
-                restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
-            }
-        }, { injector: this.injector });
+                if (isFiltering) {
+                    this.expandFilteredAncestors(treeData, tree);
+                } else {
+                    restoreExpandedNodes(treeData, this.expandedNodeIds, tree);
+                }
+            },
+            { injector: this.injector }
+        );
+    });
+
+    private expandSelectedCategory = effect(() => {
+        const selectedId = this.selectedCategoryId();
+        const moduleId = this.module()?.id;
+        if (selectedId == null || moduleId == null) {
+            return;
+        }
+
+        const moduleCategories = this.categoryTreeData().filter((category) => category.module_id === moduleId);
+        const path = this.findCategoryPath(moduleCategories, selectedId);
+        if (!path) {
+            return;
+        }
+
+        this.isModuleCategoriesExpanded.set(true);
+        if (!this.findCategoryPath(this.categoryTree(), selectedId)) {
+            this.filterText.set('');
+        }
+
+        afterNextRender(
+            () => {
+                const tree = this.categoryTreeRef;
+                if (!tree) {
+                    return;
+                }
+
+                for (const ancestor of path.slice(0, -1)) {
+                    this.expandedNodeIds.add(ancestor.id);
+                    tree.expand(ancestor);
+                }
+            },
+            { injector: this.injector }
+        );
     });
 
     // Material Tree Accessors
@@ -117,6 +183,21 @@ export class CategoryList {
                 this.expandFilteredAncestors(node.children, tree);
             }
         }
+    }
+
+    private findCategoryPath(categories: CategoryOption[], categoryId: number): CategoryOption[] | null {
+        for (const category of categories) {
+            if (category.id === categoryId) {
+                return [category];
+            }
+
+            const childPath = this.findCategoryPath(category.children ?? [], categoryId);
+            if (childPath) {
+                return [category, ...childPath];
+            }
+        }
+
+        return null;
     }
 
     getCategoryNameParts(name: string): CategoryNamePart[] {
@@ -185,6 +266,13 @@ export class CategoryList {
         this.categoryTreeRef?.toggle(node);
     }
 
+    toggleModuleCategories(event: MouseEvent) {
+        event.stopPropagation();
+        if (this.filterText().trim().length < 2) {
+            this.isModuleCategoriesExpanded.update((expanded) => !expanded);
+        }
+    }
+
     getCategoryListForDropdown(excludeId: number | null = null): CategoryOption[] {
         const moduleCategories = this.categoryListData().filter((category) => {
             const isSameModule = category.module_id === this.module()?.id;
@@ -232,11 +320,7 @@ export class CategoryList {
                 result.children = item.children; // Preserve children if they exist
             }
             console.log('Save confirmed for category:', item.id, 'Result:', result);
-            if (
-                result.parent_id != null &&
-                item.parent_id !== result.parent_id &&
-                !this.expandedNodeIds.has(result.parent_id)
-            ) {
+            if (result.parent_id != null && item.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
                 this.expandedNodeIds.add(result.parent_id);
             }
             this.toastMessage.emit('Category updated successfully.');
@@ -350,24 +434,29 @@ export class CategoryList {
         });
     }
 
+    addLink(item: CategoryOption | null) {
+        this.linkAdded.emit(item);
+        return;
+    }
+
     onCategorySelect(node: CategoryOption, tree: MatTree<CategoryOption>, event: MouseEvent) {
         this.categorySelected.emit(node); // Notify parent component
         event.stopPropagation();
     }
 
     showFilterInput() {
-      if (!this.isFilterInputVisible()) {
-        this.isFilterInputVisible.set(true);
-        afterNextRender(() => this.filterInput?.nativeElement.focus(), {
-          injector: this.injector
-        });
-      }
+        if (!this.isFilterInputVisible()) {
+            this.isFilterInputVisible.set(true);
+            afterNextRender(() => this.filterInput?.nativeElement.focus(), {
+                injector: this.injector
+            });
+        }
     }
 
     clearFilter(event?: MouseEvent) {
-      event?.stopPropagation(); // Prevent the click from propagating to the parent
-      this.filterText.set('');
-      this.isFilterInputVisible.set(false);
+        event?.stopPropagation(); // Prevent the click from propagating to the parent
+        this.filterText.set('');
+        this.isFilterInputVisible.set(false);
     }
 
     onFilterTextChange(event: Event): void {
