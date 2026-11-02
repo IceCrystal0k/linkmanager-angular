@@ -10,7 +10,6 @@ import {
     signal
 } from '@angular/core';
 import { AbstractControl } from '@angular/forms';
-import { HttpErrorResponse } from '@angular/common/http';
 import { MAT_DIALOG_DATA, MatDialogActions, MatDialogContent, MatDialogTitle, MatDialogRef } from '@angular/material/dialog';
 import { MatButtonModule } from '@angular/material/button';
 import { Subscription } from 'rxjs';
@@ -91,7 +90,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
     async onSave(): Promise<void> {
         const editContent = this.contentComponent?.instance as EditDialogContent;
         const savedData = editContent?.getSaveData?.();
-        let result = false;
+        let result: any = false;
         this.saveErrorMessage.set(null);
         try {
             result = await this.data.saveCallback?.(this.data.id || 0, savedData);
@@ -101,7 +100,7 @@ export class EditDialog implements AfterViewInit, OnDestroy {
             return;
         }
         if (result !== false) {
-            this.dialogRef.close(savedData ?? true);
+            this.dialogRef.close(result?.data ?? true);
         }
     }
 

@@ -9,8 +9,8 @@ describe('CategoryService', () => {
     let httpTestingController: HttpTestingController;
 
     const existingCategory: CategoryModel = {
-        id: 'existing',
-        module_id: 'links',
+        id: 1,
+        module_id: 1,
         name: 'Existing category',
         slug: 'existing-category',
         parent_id: null,
@@ -52,8 +52,8 @@ describe('CategoryService', () => {
     it('should add a category after creating it', () => {
         loadCategories([existingCategory]);
         const newCategory: CategoryModel = {
-            id: 'created',
-            module_id: 'links',
+            id: 9999,
+            module_id: 1,
             name: 'Created category',
             slug: 'created-category',
             parent_id: null,

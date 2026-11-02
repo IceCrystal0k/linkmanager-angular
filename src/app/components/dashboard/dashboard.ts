@@ -22,6 +22,7 @@ import { UserSettings } from '../account/user-settings';
 
 import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
+import { AccountService } from '../../services/account';
 import { ModuleService, ModuleModel } from '../../services/module';
 import { buildTree, flattenTree } from '../../lib/array-util';
 import { getHttpErrormessageAsString } from '../../lib/http-util';
@@ -55,6 +56,7 @@ export class Dashboard implements OnInit, OnDestroy {
     // Inject your isolated domain service
     private linkService = inject(LinkService);
     private categoryService = inject(CategoryService);
+    private accountService = inject(AccountService);
     private moduleService = inject(ModuleService);
     private categoriesLoading = false;
     private modulesLoading = false;
@@ -338,17 +340,58 @@ export class Dashboard implements OnInit, OnDestroy {
         console.log([...this.selectedLinkIds()]);
     }
 
+    getProfileDataForDialog() {
+      const storedFirstName = localStorage.getItem('first_name') || '';
+      const storedLastName = localStorage.getItem('last_name') || '';
+
+      return {
+        first_name: storedFirstName,
+        last_name: storedLastName,
+      };
+    }
+
+    storeProfileData(data: any) {
+      localStorage.setItem('first_name', data.first_name);
+      localStorage.setItem('last_name', data.last_name);
+      if (data.user_info?.avatar) {
+        localStorage.setItem('user_avatar', data.user_info.avatar + '?t=' + new Date().getTime()); // Append timestamp to bust cache
+      }
+      else if (data.user_info?.avatar_deleted) {
+        localStorage.removeItem('user_avatar');
+      }
+    }
+
     openUserProfile() {
-        this.dialogService.openEdit(
+        const profileData = this.getProfileDataForDialog();
+        const dialogRef = this.dialogService.openEdit(
             UserProfile,
             {
                 title: 'Profile',
                 cancelButtonText: 'Close',
-                saveButtonText: 'Done'
+                saveButtonText: 'Update',
+                componentInputs: profileData,
+                saveCallback: (id: number, result: any) => this.updateProfileHandler(0, result)
             },
-            { height: 'auto', maxHeight: '80vh' }
+            { width: '480px' },
         );
+
+        dialogRef.afterClosed().subscribe((result: any) => {
+            if (result == null || result === false) {
+                return;
+            }
+            if (result) {
+                this.storeProfileData(result);
+            }
+            this.showCategoryToast('Profile updated successfully.');
+        });
     }
+
+    updateProfileHandler = (id: number, result: any):Promise<any> => {
+        if (result === false) {
+            return Promise.resolve(false);
+        }
+        return firstValueFrom(this.accountService.updateProfile(result));
+      }
 
     openUserSettings() {
         this.dialogService.openEdit(

@@ -316,9 +316,9 @@ export class CategoryList {
                 return;
             }
 
-            if (item.children) {
-                result.children = item.children; // Preserve children if they exist
-            }
+            // if (item.children) {
+            //     result.children = item.children; // Preserve children if they exist
+            // }
             console.log('Save confirmed for category:', item.id, 'Result:', result);
             if (result.parent_id != null && item.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
                 this.expandedNodeIds.add(result.parent_id);

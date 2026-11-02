@@ -1,0 +1,79 @@
+:host {
+  display: block;
+}
+
+.image-upload {
+  position: relative;
+  display: flex;
+  min-height: 10rem;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  border: 2px dashed #cbd5e1;
+  border-radius: 0.75rem;
+  background: #f8fafc;
+  text-align: center;
+  transition: border-color 150ms ease, background-color 150ms ease;
+}
+
+.image-upload--dragging {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.image-upload__input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  clip-path: inset(50%);
+}
+
+.image-upload__filename {
+  margin: 0;
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.image-upload__button {
+  padding: 0.5rem 1rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: #2563eb;
+  color: white;
+  cursor: pointer;
+  font: inherit;
+}
+
+.image-upload__button:hover {
+  background: #1d4ed8;
+}
+
+.image-upload__button:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.image-upload__drop-overlay {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: inherit;
+  background: rgb(239 246 255 / 90%);
+  color: #1d4ed8;
+  font-size: 1.125rem;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.image-upload__error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.875rem;
+}

@@ -1,0 +1,36 @@
+<div
+  class="image-upload"
+  [class.image-upload--dragging]="isDragging()"
+  (dragenter)="onDragEnter($event)"
+  (dragover)="onDragOver($event)"
+  (dragleave)="onDragLeave($event)"
+  (drop)="onDrop($event)"
+>
+  @if (isDragging()) {
+    <div class="image-upload__drop-overlay" aria-live="polite">
+      Drop image here
+    </div>
+  }
+
+  <input
+    #fileInput
+    class="image-upload__input"
+    type="file"
+    accept="image/*"
+    aria-label="Choose an image"
+    (change)="onFileSelected($event)"
+  />
+  <p class="image-upload__filename">
+    @if (getImage(); as image) {
+      {{ image.name }}
+    } @else {
+      Choose an image or drag it here
+    }
+  </p>
+  <button class="image-upload__button" type="button" (click)="fileInput.click()">
+    Browse
+  </button>
+  @if (error()) {
+    <p class="image-upload__error" role="alert">{{ error() }}</p>
+  }
+</div>
