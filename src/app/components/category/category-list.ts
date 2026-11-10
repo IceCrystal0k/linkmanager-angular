@@ -19,6 +19,7 @@ import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
 import { CategoryMenu } from './category-menu';
 import { UiDialogService } from '../../services/ui-dialog';
 import { ConfirmDialog } from '../common/dialogs/confirm-dialog';
+import { DeleteCategoryDialog } from './dialog-content/delete-category-dialog';
 import { CategoryEdit } from './category-edit';
 import { slugify } from '../../lib/string-util';
 import { restoreExpandedNodes } from '../../lib/ui-util';
@@ -316,9 +317,9 @@ export class CategoryList {
                 return;
             }
 
-            if (item.children) {
-                result.children = item.children; // Preserve children if they exist
-            }
+            // if (item.children) {
+            //     result.children = item.children; // Preserve children if they exist
+            // }
             console.log('Save confirmed for category:', item.id, 'Result:', result);
             if (result.parent_id != null && item.parent_id !== result.parent_id && !this.expandedNodeIds.has(result.parent_id)) {
                 this.expandedNodeIds.add(result.parent_id);
@@ -335,30 +336,49 @@ export class CategoryList {
 
         // Implement the logic to delete the category with the given nodeId
         console.log('Delete category with ID:', item.id);
-        const dialogData = {
-            title: 'Confirm Deletion',
-            content: `Are you sure you want to delete the category **${item.name ?? ''}**? All the subcategories and links under this category will also be deleted.`
-        };
-        const dialogRef = this.dialogService.open(ConfirmDialog, dialogData, {
-            width: '400px'
-        });
+        const categories = this.getCategoryListForDropdown(item.id);
+        const dialogRef = this.dialogService.openEdit(
+            DeleteCategoryDialog,
+            {
+                title: 'Delete category',
+                cancelButtonText: 'Cancel',
+                saveButtonText: 'Confirm',
+                data: { categories },
+                saveCallback: (_id: number, categoryId: number | false) => Promise.resolve(categoryId)
+            },
+            { width: '480px', height: 'auto', maxHeight: '80vh' }
+        );
 
-        dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
-            if (confirmed && item.id) {
-                this.categoryService.deleteItem(item.id).subscribe({
+         dialogRef.afterClosed().subscribe((response: any | undefined) => {
+            if (response !== false && item.id) {
+              // if the user selected a target category to move subcategories, call the moveItems method
+              if (response !== 0) {
+                console.log('Move confirmed for category:', item.id, 'to category ID:', response);
+                this.categoryService.moveItems(item.id, response).subscribe({
                     next: () => {
-                        console.log('Category deleted:', item.id);
-                        this.toastMessage.emit('Category deleted successfully.');
-                        this.categoryDeselected.emit(item.id);
+                        console.log(`Categories moved from: ${item.id} to: ${response}`);
+                        this.toastMessage.emit('Subcategories moved to the selected category.');
                     },
                     error: (error: unknown) => {
-                        console.error('Failed to delete category', error);
-                        this.toastMessage.emit('Failed to delete category.');
+                        console.error('Failed to move categories', error);
+                        this.toastMessage.emit('Failed to move categories.');
                     }
                 });
-                return;
+              }
+              console.log('Delete confirmed for category:', item.id);
+              this.categoryService.deleteItem(item.id).subscribe({
+                  next: () => {
+                      console.log('Category deleted:', item.id);
+                      this.toastMessage.emit('Category deleted successfully.');
+                      this.categoryDeselected.emit(item.id);
+                  },
+                  error: (error: unknown) => {
+                      console.error('Failed to delete category', error);
+                      this.toastMessage.emit('Failed to delete category.');
+                  }
+              });
+              return;
             }
-
             console.log('Delete cancelled for category:', item.id);
         });
     }

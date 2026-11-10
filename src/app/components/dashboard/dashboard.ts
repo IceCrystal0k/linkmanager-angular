@@ -18,14 +18,16 @@ import { SpinnerLoader } from '../common/spinner-loader';
 import { UiDialogService } from '../../services/ui-dialog';
 import { LinkEdit } from '../category/link-edit';
 import { UserProfile } from '../account/user-profile';
+import { PasswordChange } from '../account/password-change';
 import { UserSettings } from '../account/user-settings';
+import { MoveLinksDialog } from './move-links-dialog';
 
 import { LinkService, LinkModel } from '../../services/link'; // Import service & interface
 import { CategoryService, CategoryModel } from '../../services/category';
+import { AccountService } from '../../services/account';
 import { ModuleService, ModuleModel } from '../../services/module';
 import { buildTree, flattenTree } from '../../lib/array-util';
 import { getHttpErrormessageAsString } from '../../lib/http-util';
-import { response } from 'express';
 
 @Component({
     imports: [
@@ -55,6 +57,7 @@ export class Dashboard implements OnInit, OnDestroy {
     // Inject your isolated domain service
     private linkService = inject(LinkService);
     private categoryService = inject(CategoryService);
+    private accountService = inject(AccountService);
     private moduleService = inject(ModuleService);
     private categoriesLoading = false;
     private modulesLoading = false;
@@ -67,6 +70,9 @@ export class Dashboard implements OnInit, OnDestroy {
     selectedLinkIds = signal<Set<number>>(new Set());
     areAllCheckboxesChecked = computed(() => {
         const links = this.links();
+        if (!links || links.length === 0) {
+            return false;
+        }
         return links.length > 0 && links.every((link) => this.selectedLinkIds().has(link.id));
     });
 
@@ -75,6 +81,7 @@ export class Dashboard implements OnInit, OnDestroy {
     isSidebarExpanded = signal(true);
     isModulesLoading = signal(false);
     isLinksLoading = signal(false);
+    userAvatar = signal(typeof localStorage === 'undefined' ? '' : localStorage.getItem('user_avatar')?.trim() || '');
     categoryToast = signal<string | null>(null);
     // Track the currently selected item details
     selectedLink = signal<any>(null);
@@ -84,6 +91,8 @@ export class Dashboard implements OnInit, OnDestroy {
     private searchRequest?: Subscription;
 
     private linksCachedMap = new Map<number, LinkModel[]>();
+
+    dateFormat = signal<string>('dd-MM-yy');
 
     // Link our local template variable directly to the read-only Service Signal!
     links = signal<LinkModel[]>([]);
@@ -119,6 +128,7 @@ export class Dashboard implements OnInit, OnDestroy {
         console.log('Token at startup:', localStorage.getItem('auth_token'));
         this.fetchModules();
         this.fetchCategories();
+        this.dateFormat.set(this.getUserDateFormat());
         // this.fetchLinks();
     }
 
@@ -334,32 +344,251 @@ export class Dashboard implements OnInit, OnDestroy {
         });
     }
 
-    logSelectedLinkIds() {
-        console.log([...this.selectedLinkIds()]);
+    moveLinksToCategory() {
+        const selectedLinkIds = new Set(this.selectedLinkIds());
+        const selectedLinks = this.links().filter((link) => selectedLinkIds.has(link.id));
+        const firstSelectedLink = selectedLinks[0];
+        if (!firstSelectedLink) {
+            console.warn('No selected links are available to move.');
+            return;
+        }
+
+        const categories = this.getCategoryListForDropdown(firstSelectedLink.category.module_id);
+        const dialogRef = this.dialogService.openEdit(
+            MoveLinksDialog,
+            {
+                title: 'Move links',
+                cancelButtonText: 'Cancel',
+                saveButtonText: 'Move',
+                data: { categories },
+                saveCallback: (_id: number, categoryId: number | false) => Promise.resolve(categoryId)
+            },
+            { width: '480px', height: 'auto', maxHeight: '80vh' }
+        );
+
+        dialogRef.afterClosed().subscribe((categoryId: number | false | undefined) => {
+            if (categoryId == null || categoryId === false) {
+                return;
+            }
+
+            if (categoryId === firstSelectedLink.category_id) {
+                return;
+            }
+
+            this.linkService.handleSelectionRequest(selectedLinkIds, 'move', categoryId).subscribe({
+                next: () => {
+                    for (const [cachedCategoryId, cachedLinks] of this.linksCachedMap) {
+                        this.linksCachedMap.set(
+                            cachedCategoryId,
+                            cachedLinks.filter((link) => !selectedLinkIds.has(link.id))
+                        );
+                    }
+                    this.linksCachedMap.delete(categoryId);
+                    this.links.update((links) => links.filter((link) => !selectedLinkIds.has(link.id)));
+                    if (this.selectedLink() && selectedLinkIds.has(this.selectedLink().id)) {
+                        this.selectedLink.set(null);
+                    }
+                    this.selectedLinkIds.set(new Set());
+                    const category = categories.find((item) => item.id === categoryId);
+                    this.showCategoryToast(`Links moved to "${category?.name ?? 'the selected category'}" successfully.`);
+                },
+                error: (error: unknown) => {
+                    const errorMessage = getHttpErrormessageAsString(error, 'Failed to move links. Please try again later.');
+                    this.showCategoryToast(errorMessage, 7000);
+                    console.error('Failed to move links', error);
+                }
+            });
+        });
+    }
+
+    archiveLinks() {
+        this.confirmSelectionRequest('archive');
+    }
+
+    deleteLinks() {
+        this.confirmSelectionRequest('delete');
+    }
+
+    private confirmSelectionRequest(action: 'archive' | 'delete') {
+        const selectedLinkIds = new Set(this.selectedLinkIds());
+        if (selectedLinkIds.size === 0) {
+            console.warn(`No selected links are available to ${action}.`);
+            return;
+        }
+
+        const actionLabel = action === 'archive' ? 'archive' : 'delete';
+        const dialogRef = this.dialogService.open(
+            ConfirmDialog,
+            {
+                title: `Confirm ${actionLabel}`,
+                content: `Are you sure you want to ${actionLabel} ${selectedLinkIds.size} selected link${selectedLinkIds.size === 1 ? '' : 's'}?`,
+                confirmButtonText: action === 'archive' ? 'Archive' : 'Delete'
+            },
+            { width: '400px' }
+        );
+
+        dialogRef.afterClosed().subscribe((confirmed: boolean | undefined) => {
+            if (!confirmed) {
+                return;
+            }
+
+            this.linkService.handleSelectionRequest(selectedLinkIds, action).subscribe({
+                next: () => {
+                    for (const [cachedCategoryId, cachedLinks] of this.linksCachedMap) {
+                        this.linksCachedMap.set(
+                            cachedCategoryId,
+                            cachedLinks.filter((link) => !selectedLinkIds.has(link.id))
+                        );
+                    }
+                    this.links.update((links) => links.filter((link) => !selectedLinkIds.has(link.id)));
+                    if (this.selectedLink() && selectedLinkIds.has(this.selectedLink().id)) {
+                        this.selectedLink.set(null);
+                    }
+                    this.selectedLinkIds.set(new Set());
+                    this.showCategoryToast(`Links ${action === 'archive' ? 'archived' : 'deleted'} successfully.`);
+                },
+                error: (error: unknown) => {
+                    const errorMessage = getHttpErrormessageAsString(
+                        error,
+                        `Failed to ${actionLabel} links. Please try again later.`
+                    );
+                    this.showCategoryToast(errorMessage, 7000);
+                    console.error(`Failed to ${actionLabel} links`, error);
+                }
+            });
+        });
+
+    }
+
+    getProfileDataForDialog() {
+      const storedFirstName = localStorage.getItem('first_name') || '';
+      const storedLastName = localStorage.getItem('last_name') || '';
+
+      return {
+        first_name: storedFirstName,
+        last_name: storedLastName,
+      };
+    }
+
+    getSettingsDataForDialog() {
+      const storedDateFormat = localStorage.getItem('date_format') || '';
+      const storedDateFormatSeparator = localStorage.getItem('date_format_separator') || '';
+
+      return {
+        date_format: storedDateFormat,
+        date_format_separator: storedDateFormatSeparator,
+      };
+    }
+
+    getUserDateFormat(): string {
+      const storedDateFormat = localStorage.getItem('date_format') || 'dd-MM-yy';
+      const storedDateFormatSeparator = localStorage.getItem('date_format_separator') || '-';
+      let separator = '';
+      switch (storedDateFormatSeparator) {
+        case '2': separator = '-'; break;
+        case '3': separator = '/'; break;
+        default: separator = '.'; break;
+      }
+      switch (storedDateFormat) {
+        case '2': return `MM${separator}dd${separator}yy`;
+        case '3': return `yy${separator}MM${separator}dd`;
+        default: return `dd${separator}MM${separator}yy`;
+      }
+    }
+
+    storeProfileData(data: any) {
+      localStorage.setItem('first_name', data.first_name);
+      localStorage.setItem('last_name', data.last_name);
+      if (data.user_info?.avatar) {
+        const avatarUrl = data.user_info.avatar + '?t=' + new Date().getTime();
+        localStorage.setItem('user_avatar', avatarUrl);
+        this.userAvatar.set(avatarUrl);
+      }
+      else if (data.user_info?.avatar_deleted) {
+        localStorage.removeItem('user_avatar');
+        this.userAvatar.set('');
+      }
+    }
+
+    storeSettingsData(data: any) {
+      localStorage.setItem('date_format', data.date_format);
+      localStorage.setItem('date_format_separator', data.date_format_separator);
     }
 
     openUserProfile() {
-        this.dialogService.openEdit(
+        const profileData = this.getProfileDataForDialog();
+        const dialogRef = this.dialogService.openEdit(
             UserProfile,
             {
                 title: 'Profile',
                 cancelButtonText: 'Close',
-                saveButtonText: 'Done'
+                saveButtonText: 'Update',
+                componentInputs: profileData,
+                saveCallback: (id: number, result: any) => this.updateProfileHandler(0, result),
+                customAction: (action: string, data: any) => this.handleCustomAction(action, data),
             },
-            { height: 'auto', maxHeight: '80vh' }
+            { width: '480px' },
         );
+
+        dialogRef.afterClosed().subscribe((result: any) => {
+            if (result == null || result === false) {
+                return;
+            }
+            if (result) {
+                this.storeProfileData(result);
+            }
+            this.showCategoryToast('Profile updated successfully.');
+        });
+    }
+
+    handleCustomAction(action: string, data: any) {
+        if (action === 'updatePassword') {
+            // Handle the password update action here
+        }
+    }
+
+    openPasswordChange() {
+        this.dialogService.open(PasswordChange, undefined, { width: '480px' });
+    }
+
+    updateProfileHandler = (id: number, result: any):Promise<any> => {
+        if (result === false) {
+            return Promise.resolve(false);
+        }
+        return firstValueFrom(this.accountService.updateProfile(result));
+      }
+
+    updateSettingsHandler = (id: number, result: any):Promise<any> => {
+        if (result === false) {
+            return Promise.resolve(false);
+        }
+        return firstValueFrom(this.accountService.updateSettings(result));
     }
 
     openUserSettings() {
-        this.dialogService.openEdit(
+        const settingsData = this.getSettingsDataForDialog();
+        const dialogRef = this.dialogService.openEdit(
             UserSettings,
             {
                 title: 'Settings',
                 cancelButtonText: 'Close',
-                saveButtonText: 'Done'
+                saveButtonText: 'Done',
+                componentInputs: settingsData,
+                saveCallback: (id: number, result: any) => this.updateSettingsHandler(0, result),
             },
             { height: 'auto', maxHeight: '80vh' }
         );
+
+        dialogRef.afterClosed().subscribe((result: any) => {
+            if (result == null || result === false) {
+                return;
+            }
+            if (result) {
+                this.storeSettingsData(result);
+                this.dateFormat.set(this.getUserDateFormat());
+            }
+            this.showCategoryToast('Settings updated successfully.');
+        });
     }
 
     onFilterClick() {}

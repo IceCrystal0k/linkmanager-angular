@@ -44,6 +44,21 @@ describe('authInterceptor', () => {
         expect(navigatedTo).toEqual(['/login']);
     });
 
+    it('should redirect to email reconfirmation when the email is not verified', () => {
+        const error = new HttpErrorResponse({
+            status: 401,
+            error: { errors: ['Email not verified'] }
+        });
+        const response = interceptor(
+            new HttpRequest('GET', '/api/resource'),
+            () => throwError(() => error)
+        );
+
+        response.subscribe({ error: () => undefined });
+
+        expect(navigatedTo).toEqual(['/reconfirm-email']);
+    });
+
     it('should not redirect when a 401 occurs on the login page', () => {
         currentRoute = '/login';
         const response = interceptor(

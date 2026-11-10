@@ -4,8 +4,10 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
+import { UiDialogService } from '../../services/ui-dialog';
 import { AuthService } from '../../services/auth';
 import { getHttpErrormessage } from '../../lib/http-util';
+import { PasswordForgot } from './password-forgot';
 import { ButtonCustom } from '../common/button-custom';
 
 @Component({
@@ -18,10 +20,12 @@ export class Login {
     private fb = inject(FormBuilder);
     private router = inject(Router);
     private authService = inject(AuthService); // Inject the service
+    private readonly dialogService = inject(UiDialogService);
 
     // Manage UI error messages with a simple signal
     errorMessage = signal<string | string[] |null>(null);
     socialLoginLoading = signal(false);
+    canResetPassword = signal(false);
 
     // Strongly-typed reactive form group definition
     loginForm = this.fb.group({
@@ -32,6 +36,8 @@ export class Login {
     onSubmit() {
         if (this.loginForm.valid) {
             this.errorMessage.set(null); // Clear previous errors
+            this.canResetPassword.set(false);
+            this.socialLoginLoading.set(true);
             this.authService.login(this.loginForm.value).subscribe({
                 next: (response) => {
                     // Success callback
@@ -44,13 +50,20 @@ export class Login {
 
                     let errorMsg = getHttpErrormessage(err, 'Invalid email or password.');
                     this.errorMessage.set(errorMsg);
+                    this.canResetPassword.set(err?.status === 401);
+                    this.socialLoginLoading.set(false);
                 }
             });
         }
     }
 
+    onResetPassword(): void {
+        this.dialogService.open(PasswordForgot, undefined, { width: '480px' });
+    }
+
     onGoogleLogin(): void {
         this.errorMessage.set(null);
+        this.canResetPassword.set(false);
         this.socialLoginLoading.set(true);
         this.authService.startGoogleLogin().subscribe({
             next: (response: any) => {
@@ -65,5 +78,9 @@ export class Login {
                 this.socialLoginLoading.set(false)
             }
         });
+    }
+
+    onCreateAccount(): void {
+        this.router.navigate(['/register']);
     }
 }

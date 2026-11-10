@@ -18,4 +18,18 @@ describe('DeleteCategoryDialog', () => {
     it('should create', () => {
         expect(component).toBeTruthy();
     });
+
+    it('requires a category when the selected action is move', () => {
+        expect(component.form.valid).toBe(false);
+
+        component.form.controls.category_id.setValue(1);
+
+        expect(component.form.valid).toBe(true);
+    });
+
+    it('does not require a category when the selected action is delete', () => {
+        component.form.controls.action.setValue('delete');
+
+        expect(component.form.valid).toBe(true);
+    });
 });

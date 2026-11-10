@@ -25,21 +25,19 @@ export class AuthService {
     readonly isAuthenticated = this.isAuthenticatedSignal.asReadonly();
 
     startGoogleLogin(): Observable<{ url: string }> {
-      if (!isPlatformBrowser(this.platformId)) {
-        return of({ url: '' }); // Return an empty URL if not in a browser context
-      }
+        if (!isPlatformBrowser(this.platformId)) {
+            return of({ url: '' }); // Return an empty URL if not in a browser context
+        }
 
-      return this.http.get<{ url: string }>(`${this.apiUrl}auth/google`);
+        return this.http.get<{ url: string }>(`${this.apiUrl}auth/google`);
     }
 
     completeSocialLogin(token: string, userId: string): Observable<{ url: string; body: any }> {
-        return this.http
-            .post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token, uid: userId })
-            .pipe(
-                tap((data) => {
-                    console.log(data);
-                })
-            );
+        return this.http.post<{ url: string; body: any }>(`${this.apiUrl}auth/social/exchange`, { token, uid: userId }).pipe(
+            tap((data) => {
+                console.log(data);
+            })
+        );
     }
 
     // Check the initial authentication status based on localStorage
@@ -63,12 +61,7 @@ export class AuthService {
         return this.http.post<any>(`${this.apiUrl}sessions`, credentials).pipe(
             tap((response) => {
                 this.isAuthenticatedSignal.set(true);
-                if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
-                    localStorage.setItem('is_user_logged_in', 'true');
-                    localStorage.setItem('auth_token', response.data.token); // Save your API token
-                    localStorage.setItem('user_name', `${response.data.first_name} ${response.data.last_name}`);
-                    localStorage.setItem('role_id', response.data.role_id);
-                }
+                this.storeUserProfileData(response.data); // Store user profile data in localStorage
             })
         );
     }
@@ -81,12 +74,22 @@ export class AuthService {
     setAuthData(data: any): void {
         console.log('Setting auth data', data);
         this.isAuthenticatedSignal.set(true);
+        this.storeUserProfileData(data);
+    }
+
+    storeUserProfileData(userProfile: any): void {
         if (isPlatformBrowser(this.platformId) && typeof localStorage !== 'undefined') {
-          console.log('is browser platform');
+            // set token and user profile data in localStorage
             localStorage.setItem('is_user_logged_in', 'true');
-            localStorage.setItem('auth_token', data.token);
-            localStorage.setItem('user_name', `${data.first_name} ${data.last_name}`);
-            localStorage.setItem('role_id', data.role_id);
+            localStorage.setItem('auth_token', userProfile.token);
+
+            localStorage.setItem('first_name', userProfile.first_name || '');
+            localStorage.setItem('last_name', userProfile.last_name || '');
+            localStorage.setItem('user_email', userProfile.email || '');
+            localStorage.setItem('user_avatar', userProfile.avatar || '');
+            localStorage.setItem('role_id', userProfile.role_id || '');
+            localStorage.setItem('date_format', userProfile.date_format || '0');
+            localStorage.setItem('date_format_separator', userProfile.date_format_separator || '0');
         }
     }
 

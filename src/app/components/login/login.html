@@ -44,6 +44,13 @@
           {{ errorMessage() }}
         </div>
       }
+      @if (canResetPassword()) {
+        Forgot your password?
+        <button type="button" (click)="onResetPassword()"
+          class="text-sm font-semibold text-blue-600 hover:text-blue-700">
+          Reset your password
+        </button>
+      }
 
       <button
         mat-flat-button
@@ -51,7 +58,7 @@
         type="submit"
         [disabled]="loginForm.invalid || socialLoginLoading()"
         class="w-full !py-6 !rounded-xl !bg-blue-600 hover:!bg-blue-700 transition-all shadow-lg disabled:!opacity-50 disabled:!cursor-not-allowed">
-        Sign In to Portal
+        Sign In
       </button>
 
       <div class="flex items-center gap-3 text-xs text-slate-400">
@@ -73,6 +80,23 @@
         }
         Continue with Google
       </button>
+
+      <div class="flex items-center gap-3 text-xs text-slate-400">
+        <span class="h-px flex-1 bg-slate-200"></span>
+        <span>OR</span>
+        <span class="h-px flex-1 bg-slate-200"></span>
+      </div>
+
+      <button
+        mat-stroked-button
+        button-custom
+        type="button"
+        (click)="onCreateAccount()"
+        [disabled]="socialLoginLoading()"
+        class="w-full !py-6 !rounded-xl !border-slate-300 !text-slate-700">
+        Create a new account
+      </button>
+
     </form>
 
   </div>

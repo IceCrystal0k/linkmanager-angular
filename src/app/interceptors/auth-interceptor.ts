@@ -12,9 +12,13 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
                 error instanceof HttpErrorResponse
                 && error.status === 401
                 && typeof window !== 'undefined'
-                && !isLoginPageRequest
             ) {
-                void router.navigateByUrl('/login');
+                const errors = error.error?.errors;
+                if (Array.isArray(errors) && errors.includes('Email not verified')) {
+                    void router.navigateByUrl('/reconfirm-email');
+                } else if (!isLoginPageRequest) {
+                    void router.navigateByUrl('/login');
+                }
             }
 
             return throwError(() => error);
