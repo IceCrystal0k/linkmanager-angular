@@ -1,39 +1,38 @@
-import { Component, inject } from '@angular/core';
-import {
-  MAT_DIALOG_DATA,
-  MatDialogActions,
-  MatDialogContent,
-  MatDialogTitle,
-  MatDialogRef
-} from '@angular/material/dialog';
-import {MatButtonModule} from '@angular/material/button';
-
-export interface DialogData {
-  data: {
-    id: number;
-    name: string;
-  };
-  title: string;
-}
-
+import { Component, inject, input } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MatFormFieldModule } from '@angular/material/form-field';
+import { MatSelectModule } from '@angular/material/select';
+import { MatRadioModule } from '@angular/material/radio';
+import { CategoryOption } from '../category-list';
 
 @Component({
-    imports: [MatButtonModule, MatDialogActions, MatDialogTitle, MatDialogContent],
+    imports: [ReactiveFormsModule, MatFormFieldModule, MatSelectModule, MatRadioModule],
     selector: 'app-delete-category-dialog',
-    styleUrl: './delete-category-dialog.scss',
-    templateUrl: './delete-category-dialog.html'
+    templateUrl: './delete-category-dialog.html',
+    styleUrl: './delete-category-dialog.scss'
 })
 export class DeleteCategoryDialog {
-  readonly dialogRef = inject(MatDialogRef<DeleteCategoryDialog>);
-  readonly data = inject<DialogData>(MAT_DIALOG_DATA);
+    private fb = inject(FormBuilder);
+    categories = input<CategoryOption[]>([]);
 
-  onConfirm(): void {
-    // Close the dialog, return true
-    this.dialogRef.close(true);
-  }
+    readonly form = this.fb.nonNullable.group({
+        category_id: [0, [Validators.required, Validators.min(1)]],
+        action: ['move', [Validators.required]] // Default action is 'move'
+    });
 
-  onCancel(): void {
-    // Close the dialog, return false
-    this.dialogRef.close(false);
-  }
+    constructor() {
+        this.form.controls.action.valueChanges.subscribe((action) => {
+            const categoryId = this.form.controls.category_id;
+            categoryId.setValidators(action === 'move' ? [Validators.required, Validators.min(1)] : []);
+            categoryId.updateValueAndValidity();
+        });
+    }
+
+    getSaveData(): { data: number } | false {
+      const action = this.form.controls.action.value;
+      if (action === 'delete') {
+          return { data: 0 }; // Return 0 to indicate deletion
+      }
+      return this.form.valid ? { data: this.form.controls.category_id.value } : false;
+    }
 }

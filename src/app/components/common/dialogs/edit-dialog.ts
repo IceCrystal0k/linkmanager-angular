@@ -18,6 +18,7 @@ import { getHttpErrormessage } from '../../../lib/http-util';
 export interface EditDialogContent<T = unknown> {
     form?: AbstractControl;
     getSaveData?(): T | undefined;
+    getCustomData?(action: string): T | undefined;
 }
 
 export interface EditDialogData {
@@ -29,6 +30,7 @@ export interface EditDialogData {
     cancelButtonText?: string;
     id?: number;
     saveCallback?: (id: number, result: any) => Promise<any>;
+    customAction?: (action: string, data: any) => void;
 }
 
 interface DialogConfig {

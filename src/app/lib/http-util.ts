@@ -12,11 +12,15 @@ export function getHttpErrormessage(err: any, defaultError: string): string | st
         return 'Network error: Please check your internet connection.';
     }
     let errorMsg: string | string[] = defaultError;
-    if (err.error?.errors && Array.isArray(err.error.errors)) {
-        if (typeof err.error.errors[0] === 'string') {
-            errorMsg = err.error.errors;
-        } else if (typeof err.error.errors[0] === 'object') {
-            errorMsg = Object.values(err.error.errors[0]).flat() as string[];
+    if (err.error?.errors) {
+        if (Array.isArray(err.error.errors)) {
+          if (typeof err.error.errors[0] === 'string') {
+              errorMsg = err.error.errors;
+          } else if (typeof err.error.errors[0] === 'object') {
+              errorMsg = Object.values(err.error.errors[0]).flat() as string[];
+          }
+        } else if (typeof err.error.errors === 'object') {
+            errorMsg = Object.values(err.error.errors).flat() as string[];
         }
     } else if (err.message) {
         errorMsg = err.message;

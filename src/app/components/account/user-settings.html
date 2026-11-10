@@ -1,4 +1,19 @@
-<div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
-    <h3 class="text-sm font-semibold text-slate-700">Account settings</h3>
-    <p class="mt-1 text-sm text-slate-500">Account preferences will be available here.</p>
-</div>
+<form [formGroup]="settingsForm" class="space-y-5">
+    <div>
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Date Format</label>
+      <mat-select formControlName="date_format" placeholder="--Select Date Format--">
+            @for (dateFormat of dateFormats; track dateFormat.id) {
+            <mat-option [value]="dateFormat.id">{{ dateFormat.name }}</mat-option>
+            }
+        </mat-select>
+    </div>
+
+    <div>
+      <label class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">Date Format Separator</label>
+      <mat-select formControlName="date_format_separator" placeholder="--Select Date Format Separator--">
+            @for (dateFormatSeparator of dateFormatSeparators; track dateFormatSeparator.id) {
+            <mat-option [value]="dateFormatSeparator.id">{{ dateFormatSeparator.name }}</mat-option>
+            }
+        </mat-select>
+    </div>
+</form>

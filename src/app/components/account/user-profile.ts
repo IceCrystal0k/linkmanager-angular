@@ -1,4 +1,4 @@
-import { Component, inject, input, signal } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { TooltipPosition, MatTooltipModule } from '@angular/material/tooltip';
@@ -13,6 +13,7 @@ import { ImageUpload } from '../common/image-upload';
 })
 export class UserProfile {
   private fb = inject(FormBuilder);
+
   email = signal<string>('');
   avatar = signal<string>('');
   avatarDeleted = signal<boolean>(false);

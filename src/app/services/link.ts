@@ -80,4 +80,16 @@ export class LinkService {
             })
         );
     }
+
+    handleSelectionRequest(selectedLinkIds: Set<number>, action: 'move' | 'archive' | 'delete', targetCategoryId?: number): Observable<any> {
+        const payload: any = {
+            action: action,
+            ids: Array.from(selectedLinkIds)
+        };
+
+        if (action === 'move' && targetCategoryId !== undefined) {
+            payload.category_id = targetCategoryId;
+        }
+        return this.http.post<any>(`${this.apiUrl}links/batch`, payload);
+    }
 }

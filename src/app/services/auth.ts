@@ -88,6 +88,8 @@ export class AuthService {
             localStorage.setItem('user_email', userProfile.email || '');
             localStorage.setItem('user_avatar', userProfile.avatar || '');
             localStorage.setItem('role_id', userProfile.role_id || '');
+            localStorage.setItem('date_format', userProfile.date_format || '0');
+            localStorage.setItem('date_format_separator', userProfile.date_format_separator || '0');
         }
     }
 

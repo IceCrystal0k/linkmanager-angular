@@ -191,7 +191,7 @@ export class CategoryService {
         return this.http.post<HttpPostResponse>(`${this.apiUrl}categories`, newCategory).pipe(
             tap((createdCategory) => {
                 // add the new item to our local signal array
-                this.categorySignal.update((currentCategories) => this.addListItem(currentCategories, createdCategory.data));
+                this.categorySignal.update((currentCategories) => this.addListItem(currentCategories || [], createdCategory.data));
             })
         );
     }
@@ -215,6 +215,23 @@ export class CategoryService {
                 this.categorySignal.update((currentCategories) => this.removeListItem(currentCategories, id));
             })
         );
+    }
+
+    // move subcategories from the source category id to the destination category id
+    moveItems(fromId: number, toId: number): Observable<void> {
+         return this.http.post<void>(`${this.apiUrl}categories/requests`, {action: 'move', from_id: fromId, to_id: toId}).pipe(
+            tap(() => {
+                this.categorySignal.update((currentCategories: CategoryModel[]) => {
+                  const updatedCategories = currentCategories ? [...currentCategories] : [];
+                  for (const category of updatedCategories) {
+                    if (category.parent_id === fromId) {
+                      category.parent_id = toId;
+                      this.updateListItem(currentCategories, category);
+                    }
+                }
+                return updatedCategories;
+            })
+        }));
     }
 
     /**
@@ -259,7 +276,7 @@ export class CategoryService {
             // preserve the children
             newItem.children = listItem.children;
             // Remove from old parent
-            list = this.removeListItem(list, newItem.id);
+            list = this.removeListItem(list, newItem.id) || [];
             // Add to new parent
             if (newItem.parent_id) {
                 list = this.addListItem(list, newItem);

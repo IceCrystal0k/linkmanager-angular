@@ -16,4 +16,28 @@ export class AccountService {
         formData.append('_method', 'PATCH');
         return this.http.post<any>(`${this.apiUrl}accounts`, formData);
     }
+
+    updatePassword(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts/requests`, data);
+    }
+
+    updateSettings(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts/requests`, data);
+    }
+
+    sendAccountRequest(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts/requests`, data);
+    }
+
+    register(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts`, data);
+    }
+
+    sendVerificationEmail(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts/emails`, data);
+    }
+
+    sendPasswordResetEmail(data: any): Observable<any> {
+        return this.http.post<any>(`${this.apiUrl}accounts/emails-unauthorized`, data);
+    }
 }
