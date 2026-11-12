@@ -71,12 +71,12 @@
             [matTooltipPosition]="tooltipPosition" aria-label="Move to" class="!w-9 !h-9 !p-0">
             <mat-icon class="text-slate-500">move_to_inbox</mat-icon>
           </button>
-          <button matIconButton (click)="archiveLinks()" matTooltip="Archive"
-            [matTooltipPosition]="tooltipPosition" aria-label="Archive" class="!w-9 !h-9 !p-0">
+          <button matIconButton (click)="archiveLinks()" matTooltip="Archive" [matTooltipPosition]="tooltipPosition"
+            aria-label="Archive" class="!w-9 !h-9 !p-0">
             <mat-icon class="text-slate-500">archive</mat-icon>
           </button>
-          <button matIconButton (click)="deleteLinks()" matTooltip="Delete"
-            [matTooltipPosition]="tooltipPosition" aria-label="Delete" class="!w-9 !h-9 !p-0">
+          <button matIconButton (click)="deleteLinks()" matTooltip="Delete" [matTooltipPosition]="tooltipPosition"
+            aria-label="Delete" class="!w-9 !h-9 !p-0">
             <mat-icon class="text-slate-500">delete</mat-icon>
           </button>
           }
@@ -84,8 +84,8 @@
             [matTooltipPosition]="tooltipPosition" aria-label="Search" class="!w-9 !h-9 !p-0">
             <mat-icon class="text-slate-500">search</mat-icon>
           </button>
-          <button matIconButton (click)="onFilterClick()" matTooltip="Filter"
-            [matTooltipPosition]="tooltipPosition" aria-label="Filter" class="!w-9 !h-9 !p-0">
+          <button matIconButton (click)="onFilterClick()" matTooltip="Filter" [matTooltipPosition]="tooltipPosition"
+            aria-label="Filter" class="!w-9 !h-9 !p-0">
             <mat-icon class="text-slate-500">filter_list</mat-icon>
           </button>
           @if (selectedCategory()) {
@@ -168,9 +168,9 @@
         <button matIconButton [matMenuTriggerFor]="accountMenu" matTooltip="Account"
           [matTooltipPosition]="tooltipPosition" aria-label="Account">
           @if (userAvatar()) {
-            <img [src]="userAvatar()" alt="Account" class="w-8 rounded-full object-cover">
+          <img [src]="userAvatar()" alt="Account" class="w-8 rounded-full object-cover">
           } @else {
-            <mat-icon class="text-slate-600">account_box</mat-icon>
+          <mat-icon class="text-slate-600">account_box</mat-icon>
           }
         </button>
         <mat-menu #accountMenu="matMenu">
@@ -192,6 +192,13 @@
               <mat-icon class="scale-70 inline-block">open_in_new</mat-icon>
             </a>
           </div>
+          @if (selectedLink().price) {
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Price</label>
+            <p class="text-slate-600 text-sm leading-relaxed">{{ selectedLink().price }} {{ selectedLink().currency?.symbol }}
+            </p>
+          </div>
+          }
 
           <div>
             <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Description Note</label>
@@ -199,10 +206,11 @@
           </div>
 
           @if (selectedLink().comment) {
-            <div>
-              <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Comment</label>
-              <div class="comment-preview text-slate-600 text-sm leading-relaxed" [innerHTML]="selectedLink().comment"></div>
+          <div>
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-400 mb-1">Comment</label>
+            <div class="comment-preview text-slate-600 text-sm leading-relaxed" [innerHTML]="selectedLink().comment">
             </div>
+          </div>
           }
         </div>
       </div>

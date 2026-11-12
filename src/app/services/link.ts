@@ -13,6 +13,9 @@ export interface LinkModel {
     id: number;
     name: string;
     url: string;
+    price?: number;
+    currency_id?: number;
+    currency?: { id: number; name: string; symbol?: string };
     category_id: number;
     category: { id: number; name: string; module_id: number };
     comment: string;
