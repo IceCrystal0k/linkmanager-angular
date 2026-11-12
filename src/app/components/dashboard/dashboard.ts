@@ -26,6 +26,7 @@ import { LinkService, LinkModel } from '../../services/link'; // Import service 
 import { CategoryService, CategoryModel } from '../../services/category';
 import { AccountService } from '../../services/account';
 import { ModuleService, ModuleModel } from '../../services/module';
+import { CurrencyType } from '../../services/currency';
 import { buildTree, flattenTree } from '../../lib/array-util';
 import { getHttpErrormessageAsString } from '../../lib/http-util';
 
@@ -722,7 +723,9 @@ export class Dashboard implements OnInit, OnDestroy {
                     url: item.url,
                     category_id: item.category_id,
                     description: item.description,
-                    comment: item.comment
+                    comment: item.comment,
+                    price: item.price,
+                    currency_id: item.currency_id || CurrencyType.RON
                 },
                 data: {
                     categories: this.getCategoryListForDropdown(item.category.module_id)
@@ -730,7 +733,7 @@ export class Dashboard implements OnInit, OnDestroy {
                 id: item.id,
                 saveCallback: (id: number, result: Partial<LinkModel> | false) => this.saveLinkHandler(id, result, 'update')
             },
-            { width: '480px' }
+            { width: '50vw' }
         );
 
         dialogRef.afterClosed().subscribe((result: Partial<LinkModel> | false | undefined) => {
@@ -753,7 +756,9 @@ export class Dashboard implements OnInit, OnDestroy {
                     url: '',
                     category_id: categoryId,
                     description: '',
-                    comment: ''
+                    comment: '',
+                    price: null,
+                    currency_id: CurrencyType.RON
                 },
                 data: {
                     categories: this.getCategoryListForDropdown(categoryModuleId)

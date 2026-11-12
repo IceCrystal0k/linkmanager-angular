@@ -23,7 +23,7 @@ export function getHttpErrormessage(err: any, defaultError: string): string | st
             errorMsg = Object.values(err.error.errors).flat() as string[];
         }
     } else if (err.message) {
-        errorMsg = err.message;
+        errorMsg = [err.message];
     }
     return errorMsg;
 }
